@@ -46,7 +46,7 @@ binding) so as to factor out common patterns in the typechecker.
 > data Can t  = Set | Type | Pair t t | Bool | Tt | Ff | Nat | Ze | Su t
 > data Head   = V Nom Twin | M Nom
 > data Twin   = Only | TwinL | TwinR
-> data Elim   = A Tm | Hd | Tl | If (Bind Nom Type) Tm Tm
+> data Elim   = A Tm | Hd | Tl | If (Bind Nom Type) Tm Tm -- | Fold (Bind Nom Type) Tm (Bind Nom (Bind Nom Tm))
 > type Type   = Tm
 
 

@@ -763,6 +763,8 @@ given metacontext.
 
 > fails = [ 
 
+-- >           tests !! 0 ,
+
 >           -- fail 0: occur check failure (A occurs in suc A)
 >           [ gal "A" NAT
 >           , eq "p" NAT (mv "A") NAT (SU (mv "A"))
@@ -833,3 +835,5 @@ given metacontext.
 
 
 >         ]
+
+> main = patternUnify
