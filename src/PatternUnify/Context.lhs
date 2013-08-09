@@ -39,7 +39,7 @@ equations under universally quantified parameters, and parameters may
 include twins.
 
 > data Decl v    =  HOLE | DEFN v
-> data Entry     =  E (Name Tm) (Type, Decl Tm) | Q Status Problem
+> data Entry     =  E Nom (Type, Decl Tm) | Q Status Problem
 > data Status    =  Blocked | Active
 >
 > data Param     =  P Type | Twins Type Type
@@ -241,7 +241,7 @@ cursor, or move the cursor one entry to the left:
 >                         []           -> throwError "popR: out of context"
 >
 > goLeft :: Contextual ()
-> goLeft = popL >>= pushR `o` Right
+> goLeft = popL >>= (pushR `o` Right)
 
 
 \subsubsection{Variable and metavariable lookup}

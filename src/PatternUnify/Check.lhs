@@ -34,6 +34,13 @@ The |equalise _T s t| function implements the judgment
 $[[MCx | Gam |- s =[u]= t : T]]$, defined in
 Figure~\longref{fig:miller:equality}, where $[[u]]$ is the result.
 
+
+Equalize does not do unification, only type checking / synthesis.
+However, it can look up metavariable types in the context.
+
+1. It does type checking.
+2. It checks alpha-beta-eta equality (including metavariables).
+
 > equalise :: Type -> Tm -> Tm -> Contextual Tm
 > equalise TYPE  SET   SET   = return SET
 > equalise TYPE  _S    _T    = equalise SET _S _T
@@ -44,6 +51,7 @@ Figure~\longref{fig:miller:equality}, where $[[u]]$ is the result.
 >     _U <- equalise SET _A _S
 >     Pi _U <$>   bindsInScope _U _B _T
 >                    (\ x _B' _T' -> equalise SET _B' _T')
+> -- Eta expansion of neutrals
 > equalise (Pi _U _V) f g =
 >     L <$>  bindInScope _U _V
 >                (\ x _V' -> equalise _V' (f $$ var x) (g $$ var x))
@@ -51,6 +59,7 @@ Figure~\longref{fig:miller:equality}, where $[[u]]$ is the result.
 >     _U <- equalise SET _A _S
 >     Sig _U <$>  bindsInScope _U _B _T
 >                    (\ x _B' _T' -> equalise SET _B' _T')
+> -- Eta expansion of neutrals
 > equalise (Sig _U _V) s t = do
 >     u0 <- equalise _U (hd s) (hd t)
 >     u1 <- equalise (inst _V u0) (tl s) (tl t)

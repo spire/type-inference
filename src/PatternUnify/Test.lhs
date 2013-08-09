@@ -54,9 +54,9 @@ given metacontext.
 >                 (initialise >> many goLeft >> ambulando [] >> validate >> checkHolds (probs ezs))
 >     case (r, tt) of
 >         (Left err,  Fail)  -> putStrLn $ "OKAY: expected failure:\n" ++ err
->         (Left err,  _)     -> putStrLn $ "FAIL: unexpected failure:\n" ++ err
 >         (Right x,   Fail)  -> putStrLn $ "FAIL: unexpected success:\n" ++ showX x
->         (Right x,   Succeed) | succeeded x  -> putStrLn $ "OKAY: succeeded:\n" ++ showX x
+>         (Left err,  _)     -> putStrLn $ "FAIL: unexpected failure:\n" ++ err
+>         (Right x,   Succeed) | succeeded x  -> do putStrLn $ "OKAY: succeeded:\n" ++ showX x
 >                              | otherwise    -> putStrLn $ "FAIL: did not succeed:\n" ++ showX x
 >         (Right x,   Stuck)   | succeeded x  -> putStrLn $ "FAIL: did not get stuck:\n" ++ showX x
 >                              | otherwise    -> putStrLn $ "OKAY: stuck:\n" ++ showX x
@@ -77,14 +77,20 @@ given metacontext.
 > lifted x _T es = lift [] es
 >    where
 >      lift :: Subs -> [Entry] -> [Entry]
->      lift g (E a (_A, d) : as)  = E a (_Pi x _T (substs g _A), d) :
+> -- We expect to also need to substitute into definitions.
+> -- For now, we restrict ourselves to holes without definitions.
+>      lift g (E a (_A, HOLE) : as)  = E a (_Pi x _T (substs g _A), HOLE) :
 >                                          lift ((a, meta a $$ var x) : g) as
 >      lift g (Q s p : as)        = Q s (allProb x _T (substs g p)) : lift g as
 >      lift _ [] = []
 
+> -- Adds a universal quantifier using 'lifted' for skolemization
+> -- (pushing the universal under existentials), and binding it
+> -- in front of a group of universals in problems.
 > boy :: String -> Type -> [Entry] -> [Entry]
 > boy = lifted . s2n
 
+> -- Adds an existential quantifier.
 > gal :: String -> Type -> Entry
 > gal x _T = E (s2n x) (_T, HOLE)
 
@@ -103,6 +109,13 @@ given metacontext.
 >           : gal "B" SET
 >           : eq "p" SET (mv "A") SET (mv "B")
 >           : [])
+
+>           -- test 1: solve B with \ _ . A
+>         , ( gal "A" BOOL
+>           : gal "B" (BOOL --> BOOL)
+>           : []
+>           )
+
 
 >           -- test 1: solve B with \ _ . A
 >         , ( gal "A" BOOL
@@ -126,6 +139,21 @@ given metacontext.
 >           , eq "p" BOOL (mv "X" $$$ [TT, TT])
 >                    BOOL (mv "X" $$$ [TT, TT])
 >           ]
+
+>           -- test: unify ?X : set against set : set
+>         , [ gal "Z" SET
+>           , eq "p" SET (mv "Z") SET SET
+>           ]
+
+
+>  -- The type inference problem here is that Bool has type Z.
+>  -- We hope to learn what Z is SET from this.
+>  --           -- test 3 + 1/3:
+>  --         , [ gal "Z" SET
+>  --           , gal "X" (_PI "A" BOOL (if'' (mv "Z") (vv "A") BOOL BOOL --> BOOL))
+>  --           , eq "p" BOOL (mv "X" $$$ [TT, TT])
+>  --                    BOOL (mv "X" $$$ [TT, TT])
+>  --           ]
 
 >           -- test 4: solve A with BOOL
 >         , [ gal "A" SET

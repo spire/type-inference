@@ -382,7 +382,8 @@ normal form: this re-invokes hereditary substitution when a
 $\lambda$-abstraction meets an application.
 
 > (%%) :: Tm -> Elim -> Tm
-> L b       %%  (A a)     = eval [(x, a)] t where (x, t) = unsafeUnbind b
+> L b       %%  (A a)     = eval [(x, a)] t
+>   where (x, t) = unsafeUnbind b
 > PAIR x _  %%  Hd        = x  
 > PAIR _ y  %%  Tl        = y
 > TT        %%  If _ t _  = t
