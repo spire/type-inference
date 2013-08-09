@@ -46,7 +46,7 @@ binding) so as to factor out common patterns in the typechecker.
 > data Can t  = Set | Type | Pair t t | Bool | Tt | Ff | Nat | Ze | Su t
 > data Head   = V Nom Twin | M Nom
 > data Twin   = Only | TwinL | TwinR
-> data Elim   = A Tm | Hd | Tl | If (Bind Nom Type) Tm Tm -- | Fold (Bind Nom Type) Tm (Bind Nom (Bind Nom Tm))
+> data Elim   = A Tm | Hd | Tl | If (Bind Nom Type) Tm Tm | Fold (Bind Nom Type) Tm (Bind Nom (Bind Nom Tm))
 > type Type   = Tm
 
 
@@ -60,8 +60,12 @@ However, the action on morphisms can be defined thus:
 > mapElim f  (A a)        = A (f a)
 > mapElim _  Hd           = Hd
 > mapElim _  Tl           = Tl
-> mapElim f  (If _T s t)  = If (bind x (f _T')) (f s) (f t)
->   where (x, _T') = unsafeUnbind _T
+> mapElim f  (If _P ct cf)  = If (bind x (f _P')) (f ct) (f cf)
+>   where (x, _P') = unsafeUnbind _P
+> mapElim f  (Fold _P cz cs)  = Fold (bind x (f _P')) (f cz) (bind y (bind z (f cs'')))
+>   where (x, _P') = unsafeUnbind _P
+>         (y , cs') = unsafeUnbind cs
+>         (z , cs'') = unsafeUnbind cs'
 >
 > foldMapElim :: Monoid m => (Tm -> m) -> Elim -> m
 > foldMapElim f  (A a)        = f a
@@ -69,6 +73,9 @@ However, the action on morphisms can be defined thus:
 > foldMapElim _  Tl           = mempty
 > foldMapElim f  (If _T s t)  = f _T' <.> f s <.> f t
 >   where (_, _T') = unsafeUnbind _T
+> foldMapElim f  (Fold _P cz cs)  = f _P' <.> f cz <.> f cs''
+>   where (_, _P') = unsafeUnbind _P
+>         (_, cs'') = unsafeUnbind . snd . unsafeUnbind $ cs
 
 
 %if False
@@ -172,6 +179,12 @@ However, the action on morphisms can be defined thus:
 >         s' <- prettyAt ArgSize s
 >         t' <- prettyAt ArgSize t
 >         return $ text "(IF)" <+> f' <+> s' <+> t'
+>     pretty (Fold _P cz cs) = do
+>         _P' <- prettyAt ArgSize (L _P)
+>         cz' <- prettyAt ArgSize cz
+>         lunbind cs $ \ (x , cs') -> do
+>         cs'' <- prettyAt ArgSize (L (bind x (L cs')))
+>         return $ text "(FOLD)" <+> _P' <+> cz' <+> cs''
 
 > prettyElim :: (Applicative m, LFresh m, MonadReader Size m) =>
 >                   m Doc -> [Elim] -> m Doc
@@ -185,6 +198,14 @@ However, the action on morphisms can be defined thus:
 >     s' <- prettyAt ArgSize s
 >     t' <- prettyAt ArgSize t
 >     return $ text "IF_" <> parens f' <+> d' <+> s' <+> t'
+>    ) as
+> prettyElim d (Fold _P cz cs : as) = prettyElim (do
+>     _P' <- prettyAt maxBound (L _P)
+>     d' <- local (const ArgSize) d
+>     cz' <- prettyAt ArgSize cz
+>     lunbind cs $ \ (x , cs') -> do
+>     cs'' <- prettyAt ArgSize (L (bind x (L cs')))
+>     return $ text "FOLD_" <> parens _P' <+> cz' <+> cs'' <+> d'
 >    ) as
 
 %endif
@@ -317,6 +338,7 @@ available on the whole syntax.
 >    free l Hd           = Set.empty
 >    free l Tl           = Set.empty
 >    free l (If _T s t)  = free l _T `union` free l s `union` free l t
+>    free l (Fold _P cz cs)  = free l _P `union` free l cz `union` free l cs
 
 
 %if False
@@ -388,6 +410,10 @@ $\lambda$-abstraction meets an application.
 > PAIR _ y  %%  Tl        = y
 > TT        %%  If _ t _  = t
 > FF        %%  If _ _ f  = f
+> ZE        %%  Fold _P cz cs = cz
+> SU n      %%  Fold _P cz cs = eval [(m , n) , (p , n %% Fold _P cz cs)] cs''
+>   where (m , cs')  = unsafeUnbind cs
+>         (p , cs'') = unsafeUnbind cs'
 > N h e     %%  z         = N h (e :< z)
 > t         %%  a         = error "bad elimination"
 

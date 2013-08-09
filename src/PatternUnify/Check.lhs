@@ -42,6 +42,9 @@ However, it can look up metavariable types in the context.
 2. It checks alpha-beta-eta equality (including metavariables).
 
 > equalise :: Type -> Tm -> Tm -> Contextual Tm
+> -- We believe TYPE TYPE TYPE occurs like it does when 
+> -- checking neutrals here, so =p
+> equalise TYPE  TYPE   TYPE   = return TYPE
 > equalise TYPE  SET   SET   = return SET
 > equalise TYPE  _S    _T    = equalise SET _S _T
 > equalise SET   BOOL  BOOL  = return BOOL
@@ -107,6 +110,14 @@ and $[[T]]$ are the results.
 >     u''               <- equalise (inst _U'' TT) u u'
 >     v''               <- equalise (inst _U'' FF) v v'
 >     return (h'', e'' :< If _U'' u'' v'', inst _U'' (N h'' e''))
+> equaliseN h1 (e1 :< Fold _P1 cz1 cs1) h2 (e2 :< Fold _P2 cz2 cs2) = do
+>     (h, e, NAT)  <- equaliseN h1 e1 h2 e2
+>     _P            <- bindsInScope NAT _P1 _P2 (\ x _P1' _P2' -> equalise TYPE _P1' _P2')
+>     cz            <- equalise (inst _P ZE) cz1 cz2
+>     cs            <- bindsInScope NAT cs1 cs2 $ \ x cs1' cs2' -> 
+>                        bindsInScope (inst _P (var x)) cs1' cs2' $ \ ih cs1'' cs2'' ->
+>                           equalise (inst _P (SU (var x))) cs1'' cs2''
+>     return (h, e :< Fold _P cz cs , inst _P (N h e))
 
 %if False
 
@@ -134,11 +145,12 @@ type in scope.
 > bindInScope _T b f = do  (x, b') <- unbind b
 >                          bind x <$> inScope x (P _T) (f x b')
 >
-> bindsInScope ::  Type -> Bind Nom Tm -> Bind Nom Tm -> 
->                    (Nom -> Tm -> Tm -> Contextual Tm) ->
->                    Contextual (Bind Nom Tm)
+> bindsInScope ::  Alpha a => Type -> Bind Nom a -> Bind Nom a -> 
+>                    (Nom -> a -> a -> Contextual a) ->
+>                    Contextual (Bind Nom a)
 > bindsInScope _T a b f = do  Just (x, a', _, b') <- unbind2 a b
 >                             bind x <$> inScope x (P _T) (f x a' b')
+
 
 
 

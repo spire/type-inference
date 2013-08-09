@@ -28,6 +28,12 @@ succeeding partially), and those which must fail.
 > if'' :: Type -> Tm -> Tm -> Tm -> Tm
 > if'' = if' "_x"
 
+> fold' :: String -> Type -> Tm -> String -> String -> Tm -> Tm -> Tm
+> fold' x _P cz y z cs n = n %% Fold (bind (s2n x) _P) cz (bind (s2n y) (bind (s2n z) cs))
+
+> fold'' :: Type -> Tm -> String -> Tm -> Tm -> Tm
+> fold'' _C cz ih cs n = fold' "_x" _C cz "_y" ih cs n
+
 > (&&&) :: Tm -> Tm -> Tm
 > x &&& y = if'' BOOL x y FF
 
@@ -140,9 +146,22 @@ given metacontext.
 >                    BOOL (mv "X" $$$ [TT, TT])
 >           ]
 
+>           -- test: dingo
+>         , [ gal "X" (_PI "N" NAT (fold'' SET BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
+>           , eq "p" BOOL (mv "X" $$$ [ZE, TT])
+>                    BOOL (mv "X" $$$ [ZE, TT])
+>           ]
+
+>           -- test: dingo
+>         , [ gal "X" (_PI "N" NAT (fold'' SET BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
+>           , eq "p" BOOL (mv "X" $$$ [SU ZE, FF])
+>                    BOOL (mv "X" $$$ [SU ZE, FF])
+>           ]
+
+
 >           -- test: unify ?X : set against set : set
->         , [ gal "Z" SET
->           , eq "p" SET (mv "Z") SET SET
+>         , [ gal "Z" TYPE
+>           , eq "p" TYPE (mv "Z") TYPE SET
 >           ]
 
 
@@ -657,6 +676,18 @@ given metacontext.
 >               : [])
 >             )
 >           )
+
+>           -- test: dingo
+>         , [ gal "X" (_PI "N" NAT (fold'' SET BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
+>           , eq "p" BOOL (mv "X" $$$ [ZE, FF])
+>                    BOOL (mv "X" $$$ [ZE, TT])
+>           ]
+
+>           -- test: dingo
+>         , [ gal "X" (_PI "N" NAT (fold'' SET BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
+>           , eq "p" BOOL (mv "X" $$$ [ZE, FF])
+>                    BOOL (mv "X" $$$ [SU ZE, FF])
+>           ]
 
 >           -- stuck 1: nonlinear
 >         , ( gal "F" (BOOL --> BOOL --> BOOL) 
