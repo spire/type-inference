@@ -117,11 +117,17 @@ given metacontext.
 >           : [])
 
 >           -- test 1: solve B with \ _ . A
+>         , let _P = _SIG "b2" BOOL (if'' SET (vv "b2") BOOL BOOL)
+>               _T = NAT --> _P
+>               _F = _T --> NAT
+>           in
+>           ( gal "F1" _F : gal "F2" _F : eq "p" _F (mv "F1") _F (mv "F2") : [])
+
+>           -- test 1: solve B with \ _ . A
 >         , ( gal "A" BOOL
 >           : gal "B" (BOOL --> BOOL)
 >           : []
 >           )
-
 
 >           -- test 1: solve B with \ _ . A
 >         , ( gal "A" BOOL
