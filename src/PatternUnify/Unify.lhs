@@ -260,6 +260,9 @@ implements $\eta$-contraction for terms.
 
 > linearOn :: Tm -> Bwd Nom -> Bool
 > linearOn _  B0       = True
+> -- all variables (from spine arguments) need to be unique or not appear on the rhs.
+> -- actually, what is a spine argument is App (suc x)?
+> -- toVars should fail in this case?
 > linearOn t  (as:<a)  = not (a `elem` fvs t && a `elem` as) && linearOn t as
 
 > etaContract :: Tm -> Tm
@@ -493,11 +496,14 @@ Subsection~\longref{subsec:miller:spec:decompose}.
 > solver (All p b) = do
 >     (x, q)  <- unbind b
 >     case p of
+>         -- remove one All binding
+>         -- could recurse right here again?
 >         _ |  x `notElem` fvs q -> active q
 >         P _S         -> splitSig B0 x _S >>= \ m -> case m of
 >             Just (y, _A, z, _B, s, _)  -> solver (allProb y _A  (allProb z _B (subst x s q)))
 >             Nothing                    -> inScope x (P _S) $ solver q
 >         Twins _S _T  -> equal SET _S _T >>= \ c ->
+>                                     -- get rid of twin variables
 >             if c  then  solver (allProb x _S (subst x (var x) q))
 >                   else  inScope x (Twins _S _T) $ solver q
 >             
@@ -641,6 +647,7 @@ usually be solved before the constraint itself.
 >  Nothing             -> return ()
 >  Just (Left theta')  -> ambulando (theta *%* theta')
 >  Just (Right e)      -> case update theta e of
+>    -- What if HOLE is a DEFN?
 >     e'@(E alpha (_T, HOLE))   ->  do  lower B0 alpha _T <|| pushL e'
 >                                       ambulando theta
 >     Q Active p                ->  do  pushR (Left theta)
