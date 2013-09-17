@@ -2,7 +2,6 @@
 *.hers
 *.filtered
 *.detritus.*
-Makefile
 TAGS
 dist/
 *.hi

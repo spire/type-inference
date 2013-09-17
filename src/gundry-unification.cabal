@@ -1,5 +1,5 @@
-Name:                type-inference
-Version:             0.1.0
+Name:                gundry-unification
+Version:             0
 Synopsis:            Unification and type inference algorithms
 Description:         
     This package contains literate Haskell implementations of three
@@ -9,9 +9,9 @@ Description:
     measure).  It accompanies the Ph.D. thesis "Type Inference, Haskell
     and Dependent Types" by Adam Gundry.
 
-Homepage:            https://github.com/adamgundry/type-inference/
+-- Homepage:            https://github.com/adamgundry/type-inference/
 License:             BSD3
-License-file:        LICENSE
+License-file:        ../LICENSE
 Author:              Adam Gundry <adam.gundry@strath.ac.uk>
 Maintainer:          Adam Gundry <adam.gundry@strath.ac.uk>
 Copyright:           Copyright (c) 2013 Adam Gundry
@@ -20,38 +20,39 @@ Build-type:          Simple
 
 Cabal-version:       >=1.8
 
-Executable type-inference
-  hs-source-dirs:    src
-  Main-is:           Main.lhs
+Library
+  -- SHE is dumb and won't work if we try to compile outside of the
+  -- source dir.  So, the .cabal file is in here :P
+  hs-source-dirs:    .
   Build-depends:     base == 4.*,
                           RepLib == 0.5.*,
                           unbound == 0.4.*,
-                          signed-multiset == 0.3.*,
+--                          signed-multiset == 0.3.*,
                           containers >= 0.3 && < 0.6,
                           mtl == 2.*,
                           pretty == 1.1.*,
                           she == 0.6.*
                          
-  Other-modules:     Common.BwdFwd
+  Exposed-modules:      Common.BwdFwd
                         Common.Names
                         Common.PrettyPrint
-                        Milner.Infer
-                        Milner.Test
-                        Milner.Type
-                        Milner.Unify
-                        Milner.Zipper
-                        PatternUnify.Check
+--                        Milner.Infer
+--                        Milner.Test
+--                        Milner.Type
+--                        Milner.Unify
+--                        Milner.Zipper
+--                        PatternUnify.Check
                         PatternUnify.Context
                         PatternUnify.Test
                         PatternUnify.Tm
                         PatternUnify.Unify
-                        Units.Group
-                        Units.GroupUnify
-                        Units.Infer
-                        Units.Test
-                        Units.Type
-                        Units.Unify
-  
-source-repository head
-  type:     git
-  location: git://github.com/adamgundry/type-inference.git
+--                        Units.Group
+--                        Units.GroupUnify
+--                        Units.Infer
+--                        Units.Test
+--                        Units.Type
+--                        Units.Unify
+--
+-- source-repository head
+--   type:     git
+--   location: git://github.com/adamgundry/type-inference.git
