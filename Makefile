@@ -1,8 +1,8 @@
 all: cabal-install
 
-cabal-install:
+cabal-install: cabal-build
 	cd src \
-	&& cabal install
+	&& cabal --only install
 
 cabal-build:
 	cd src \
@@ -11,3 +11,7 @@ cabal-build:
 
 deps:
 	cabal install she
+
+clean:
+	cd src \
+	&& cabal clean
