@@ -1,4 +1,8 @@
-all: cabal-build
+all: cabal-install
+
+cabal-install:
+	cd src \
+	&& cabal install
 
 cabal-build:
 	cd src \
