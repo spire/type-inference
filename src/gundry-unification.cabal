@@ -41,7 +41,7 @@ Library
 --                        Milner.Type
 --                        Milner.Unify
 --                        Milner.Zipper
---                        PatternUnify.Check
+                        PatternUnify.Check
                         PatternUnify.Context
                         PatternUnify.Test
                         PatternUnify.Tm
