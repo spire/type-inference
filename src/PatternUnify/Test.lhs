@@ -11,6 +11,7 @@ succeeding partially), and those which must fail.
 > module PatternUnify.Test where
 
 > import Control.Applicative
+> import Control.Arrow ((+++))
 > import Data.Foldable (foldMap)
 
 > import Unbound.LocallyNameless
@@ -50,14 +51,26 @@ with s2n (which generates names with index 0):
 > initialise :: Contextual ()
 > initialise = (fresh (s2n "init") :: Contextual (Name Tm)) >> return ()
 
+> unify :: [Entry] -> Either String [Entry]
+> unify ezs = id +++ (fwd . fst . snd) $
+>             runContextual (bwd ezs) B0 $
+>             do initialise
+>                many goLeft
+>                ambulando []
+>                validate
+>                checkHolds (probs ezs)
+>   where
+>     probs = foldMap foo
+>     foo (E _ _) = []
+>     foo (Q _ p) = [p]
+
 The |test| function executes the constraint solving algorithm on the
 given metacontext.
 
 > test :: TestType -> [Entry] -> IO ()
 > test tt ezs = do
 >     putStrLn $ "\n\nInitial context:\n" ++ pp ezs
->     let r = runContextual (bwd ezs) B0 $
->                 (initialise >> many goLeft >> ambulando [] >> validate >> checkHolds (probs ezs))
+>     let r = PatternUnify.Test.unify ezs
 >     case (r, tt) of
 >         (Left err,  Fail)  -> putStrLn $ "OKAY: expected failure:\n" ++ err
 >         (Right x,   Fail)  -> putStrLn $ "FAIL: unexpected success:\n" ++ showX x
@@ -67,11 +80,8 @@ given metacontext.
 >         (Right x,   Stuck)   | succeeded x  -> putStrLn $ "FAIL: did not get stuck:\n" ++ showX x
 >                              | otherwise    -> putStrLn $ "OKAY: stuck:\n" ++ showX x
 >   where
->     showX ((), (cxL, [])) = "Final context:\n" ++ pp cxL
->     succeeded ((), (cxL, [])) = not (anyBlocked cxL)
->     probs = foldMap foo 
->     foo (E _ _) = []
->     foo (Q _ p) = [p]
+>     showX cxL = "Final context:\n" ++ pp cxL
+>     succeeded cxL = not (anyBlocked cxL)
 
 > runTestSolved, runTestStuck, runTestFailed, patternUnify :: IO ()
 > runTestSolved = mapM_ (test Succeed) tests

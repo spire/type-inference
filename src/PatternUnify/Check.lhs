@@ -14,7 +14,7 @@
 > import Control.Monad
 > import Control.Monad.Error
 > import Control.Monad.Reader
-> import Data.Foldable (any, foldMap)
+> import Data.Foldable (any, foldMap, Foldable)
 > import Data.Traversable (traverse)
 
 > import Common.BwdFwd
@@ -230,7 +230,7 @@ equal.
 >     f (E alpha (_, DEFN t))  = [(alpha, t)]
 >     f _                      = []
 
-> anyBlocked :: ContextL -> Bool
+> anyBlocked :: Foldable t => t Entry -> Bool
 > anyBlocked = any isBlocked
 >   where
 >     isBlocked (Q Blocked _)  = True
