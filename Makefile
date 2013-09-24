@@ -1,19 +1,32 @@
 all: cabal-install
 
+# Deps must be manually installed once.
 deps: lib-she
 
-cabal-install:
-	cd src \
-	&& cabal install $(CABAL_OPTIONS)
+cabal-install: src/dist
+
+cabal-install-debug: src/prof-dist
+
+######################################################################
+
+SOURCE = $(shell find src -name '*.lhs')
+CABAL_INSTALL = \
+  cd src \
+  && cabal install $(CABAL_OPTIONS)
+
+src/dist: $(SOURCE)
+	$(CABAL_INSTALL)
 
 # Build in a non-default dir, so that we can have debug and non-debug
 # versions compiled at the same time.
-cabal-install-debug: CABAL_OPTIONS += --ghc-options="-fprof-auto" --builddir=prof-dist
-cabal-install-debug: cabal-install
+src/prof-dist: CABAL_OPTIONS += --ghc-options="-fprof-auto" --builddir=prof-dist
+src/prof-dist: $(SOURCE)
+	$(CABAL_INSTALL)
+
+######################################################################
 
 clean:
-	cd src \
-	&& cabal clean
+	-rm -rf src/dist src/prof-dist
 
 lib/she.git:
 	git clone git@github.com:ntc2/she.git lib/she.git
