@@ -1,7 +1,6 @@
 all: cabal-install
 
-deps:
-	cabal install she
+deps: lib-she
 
 cabal-install:
 	cd src \
@@ -15,6 +14,13 @@ cabal-install-debug: cabal-install
 clean:
 	cd src \
 	&& cabal clean
+
+lib/she.git:
+	git clone git@github.com:ntc2/she.git lib/she.git
+
+lib-she: lib/she.git
+	cd lib/she.git \
+	&& cabal install
 
 ######################################################################
 # Before reinstalling all my libraries with profiling support I needed
