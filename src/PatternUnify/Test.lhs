@@ -53,6 +53,10 @@ with s2n (which generates names with index 0):
 
 > unify :: [Entry] -> Either String [Entry]
 > unify ezs = id +++ (fwd . fst . snd) $
+>             -- Using a non-empty params (the 'B0') here results in all
+>             -- memory consumed! However, we put the Spire context in the
+>             -- params of each problem we create, so we shouldn't need
+>             -- a non-empty params here.
 >             runContextual (bwd ezs) B0 $
 >             do initialise
 >                many goLeft
