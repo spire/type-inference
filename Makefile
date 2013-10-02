@@ -3,11 +3,13 @@ all: cabal-install
 # Deps must be manually installed once.
 deps: lib-she
 
+debug: cabal-install-debug
+
+######################################################################
+
 cabal-install: src/dist
 
 cabal-install-debug: src/prof-dist
-
-######################################################################
 
 SOURCE = $(shell find src -name '*.lhs')
 CABAL_INSTALL = \
