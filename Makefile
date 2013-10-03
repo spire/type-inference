@@ -15,8 +15,8 @@ SOURCE = $(shell find src -name '*.lhs')
 CABAL_INSTALL = \
   ( cd src \
     && cabal install $(CABAL_OPTIONS) ) \
-  || touch --date "@0" $@ \
-     && exit 1
+  || { touch --date "@0" $@ ; \
+       exit 42 ; }
 
 src/dist: $(SOURCE)
 	$(CABAL_INSTALL)
