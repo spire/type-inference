@@ -3,7 +3,8 @@
 *.filtered
 *.detritus.*
 TAGS
-dist/
+src/dist/
+src/prof-dist
 *.hi
 *.o
 *.bak
