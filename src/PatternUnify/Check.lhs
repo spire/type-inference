@@ -47,6 +47,7 @@ However, it can look up metavariable types in the context.
 > equalise TYPE  TYPE   TYPE   = return TYPE
 > equalise TYPE  SET   SET   = return SET
 > equalise TYPE  _S    _T    = equalise SET _S _T
+> equalise SET   SET   SET   = return SET
 > equalise SET   BOOL  BOOL  = return BOOL
 > equalise BOOL  TT    TT    = return TT
 > equalise BOOL  FF    FF    = return FF
