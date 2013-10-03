@@ -13,8 +13,10 @@ cabal-install-debug: src/prof-dist
 
 SOURCE = $(shell find src -name '*.lhs')
 CABAL_INSTALL = \
-  cd src \
-  && cabal install $(CABAL_OPTIONS)
+  ( cd src \
+    && cabal install $(CABAL_OPTIONS) ) \
+  || touch --date "@0" $@ \
+     && exit 1
 
 src/dist: $(SOURCE)
 	$(CABAL_INSTALL)
