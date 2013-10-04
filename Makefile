@@ -23,7 +23,10 @@ src/dist: $(SOURCE)
 
 # Build in a non-default dir, so that we can have debug and non-debug
 # versions compiled at the same time.
-src/prof-dist: CABAL_OPTIONS += --ghc-options="-fprof-auto" --builddir=prof-dist
+#
+# Added '--disable-optimization' because '-O' messes with
+# 'Debug.Trace.trace' and other 'unsafePerformIO' hacks.
+src/prof-dist: CABAL_OPTIONS += --ghc-options="-fprof-auto" --builddir=prof-dist --disable-optimization
 src/prof-dist: $(SOURCE)
 	$(CABAL_INSTALL)
 
