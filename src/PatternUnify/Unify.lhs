@@ -22,6 +22,7 @@
 
 > import Common.BwdFwd 
 > import Common.Names
+> import Common.PrettyPrint
 > import PatternUnify.Tm (Can(..), Tm(..), Elim(..), Head(..), Twin(..),
 >            Nom, Type, Subs,
 >            mapElim, foldMapElim,
@@ -151,6 +152,11 @@ Subsection~\longref{subsec:miller:spec:invert}.
 >                                                         tryInvert q _T
 >                                                             <|| (block (Unify q) >> pushL e)
 >       | beta `elem` fmvs (_Gam, _Xi, q)          ->  flexTerm (e : _Xi) q
+>     E beta (_, DEFN d) | alpha == beta           -> error $
+>       "flexTerm: Attempt to solve already solved (DEFN'd) metavariable!\n" ++
+>       "Equation: " ++ pp q ++ "; current solution: " ++ pp e ++ "\n" ++
+>       "Apparently this violates a tacit invariant: all solutions in the left\n" ++
+>       "of the meta context are expected to be substituted in the right of the meta context."
 >     _                                            -> do  pushR (Right e)
 >                                                         flexTerm _Xi q
 
