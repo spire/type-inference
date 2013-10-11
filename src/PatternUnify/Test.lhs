@@ -12,6 +12,7 @@ succeeding partially), and those which must fail.
 
 > import Control.Applicative
 > import Control.Arrow ((+++))
+> import Control.Monad (unless)
 > import Data.Foldable (foldMap)
 
 > import Unbound.LocallyNameless
@@ -59,7 +60,7 @@ with s2n (which generates names with index 0):
 >             -- a non-empty params here.
 >             runContextual (bwd ezs) B0 $
 >             do initialise
->                many goLeft
+>                normalize
 >                ambulando []
 >                validate
 >                checkHolds (probs ezs)
@@ -67,6 +68,38 @@ with s2n (which generates names with index 0):
 >     probs = foldMap foo
 >     foo (E _ _) = []
 >     foo (Q _ p) = [p]
+
+Normalize the equations w.r.t. the DEFNs:
+- substitute all DEFNs into all equations.
+Check that the input is well-formed along the way:
+- meta context is entirely on the left.
+- problems and metavars are in dependency order.
+- problems are active.
+Side effect: meta context moves from left to right.
+
+>     -- Based on 'PatternUnify.Check.validate'.
+>     normalize = do
+>       _Del' <- getR
+>       unless (null _Del') $ error "normalize: not at far right"
+>       n =<< getL
+>       putL B0
+>       where
+>         n :: ContextL -> Contextual ()
+>         n B0 = return ()
+>         n (_Del :< E x _) | x <? _Del =
+>           error $ "normalize: dependency error: " ++ show x ++
+>                   " occurs before its declaration"
+>         n (_ :< p@(Q state _)) | state /= Active =
+>           error $ "normalize: non-active problem: " ++ show p
+>         n (_Del :< e@(E x (_ , DEFN v))) = do
+>           -- Set up a delayed substitution.
+>           pushR . Left $ [(x , v)]
+>           pushR . Right $ e
+>           n _Del
+>         n (_Del :< e) = do
+>           pushR . Right $ e
+>           n _Del
+
 
 The |test| function executes the constraint solving algorithm on the
 given metacontext.
