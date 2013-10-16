@@ -579,20 +579,20 @@ Figure~\longref{fig:miller:impossible}.
 > orthogonal (EQN TYPE (Sig _ _) TYPE BOOL)       = True
 > orthogonal (EQN TYPE BOOL TYPE (Pi _ _))        = True
 > orthogonal (EQN TYPE BOOL TYPE (Sig _ _))       = True
-> orthogonal (EQN BOOL TT BOOL FF)                = True
-> orthogonal (EQN BOOL FF BOOL TT)                = True
+> orthogonal (EQN BOOL TRUE BOOL FALSE)           = True
+> orthogonal (EQN BOOL FALSE BOOL TRUE)           = True
 >
 > orthogonal (EQN TYPE (Pi _ _)  _ (N (V _ _) _)) = True
 > orthogonal (EQN TYPE (Sig _ _) _ (N (V _ _) _)) = True
 > orthogonal (EQN TYPE BOOL _ (N (V _ _) _))      = True
-> orthogonal (EQN BOOL TT _ (N (V _ _) _))        = True
-> orthogonal (EQN BOOL FF _ (N (V _ _) _))        = True
+> orthogonal (EQN BOOL TRUE _ (N (V _ _) _))      = True
+> orthogonal (EQN BOOL FALSE _ (N (V _ _) _))     = True
 >
 > orthogonal (EQN _ (N (V _ _) _) TYPE (Pi _ _))  = True
 > orthogonal (EQN _ (N (V _ _) _) TYPE (Sig _ _)) = True
 > orthogonal (EQN _ (N (V _ _) _) TYPE BOOL)      = True
-> orthogonal (EQN _ (N (V _ _) _) BOOL TT)        = True
-> orthogonal (EQN _ (N (V _ _) _) BOOL FF)        = True
+> orthogonal (EQN _ (N (V _ _) _) BOOL TRUE)      = True
+> orthogonal (EQN _ (N (V _ _) _) BOOL FALSE)     = True
 >
 > orthogonal _                                    = False
 
@@ -626,8 +626,8 @@ $[[(s : S) ~~ (u : S) && (t : {s/x} T) ~~ (v : {u/x} T)]]$.
 >     (BOOL, BOOL) <- matchSpine x w e x' w' e'
 >     y <- fresh (s2n "y")
 >     active $ allProb y BOOL (eqnProb TYPE (inst _T (var y)) TYPE (inst _T' (var y)))
->     active $ eqnProb (inst _T TT) s (inst _T' TT) s'
->     active $ eqnProb (inst _T FF) t (inst _T' FF) t'
+>     active $ eqnProb (inst _T TRUE) s (inst _T' TRUE) s'
+>     active $ eqnProb (inst _T FALSE) t (inst _T' FALSE) t'
 >     return (inst _T (N (V x w) e), inst _T' (N (V x' w') e'))
 > matchSpine _ _ _ _ _ _ = throwError "spine mismatch"
 

@@ -37,7 +37,7 @@ succeeding partially), and those which must fail.
 > fold'' _C cz ih cs n = fold' "_x" _C cz "_y" ih cs n
 
 > (&&&) :: Tm -> Tm -> Tm
-> x &&& y = if'' BOOL x y FF
+> x &&& y = if'' BOOL x y FALSE
 
 > ($$$) :: Tm -> [Tm] -> Tm
 > ($$$) = foldl ($$)
@@ -189,20 +189,20 @@ given metacontext.
 
 >           -- test 3: X unchanged
 >         , [ gal "X" (_PI "A" BOOL (if'' TYPE (vv "A") BOOL BOOL --> BOOL)) 
->           , eq "p" BOOL (mv "X" $$$ [TT, TT])
->                    BOOL (mv "X" $$$ [TT, TT])
+>           , eq "p" BOOL (mv "X" $$$ [TRUE, TRUE])
+>                    BOOL (mv "X" $$$ [TRUE, TRUE])
 >           ]
 
 >           -- test: dingo
 >         , [ gal "X" (_PI "N" NAT (fold'' TYPE BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
->           , eq "p" BOOL (mv "X" $$$ [ZE, TT])
->                    BOOL (mv "X" $$$ [ZE, TT])
+>           , eq "p" BOOL (mv "X" $$$ [ZE, TRUE])
+>                    BOOL (mv "X" $$$ [ZE, TRUE])
 >           ]
 
 >           -- test: dingo
 >         , [ gal "X" (_PI "N" NAT (fold'' TYPE BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
->           , eq "p" BOOL (mv "X" $$$ [SU ZE, FF])
->                    BOOL (mv "X" $$$ [SU ZE, FF])
+>           , eq "p" BOOL (mv "X" $$$ [SU ZE, FALSE])
+>                    BOOL (mv "X" $$$ [SU ZE, FALSE])
 >           ]
 
 
@@ -217,8 +217,8 @@ given metacontext.
 >  --           -- test 3 + 1/3:
 >  --         , [ gal "Z" TYPE
 >  --           , gal "X" (_PI "A" BOOL (if'' (mv "Z") (vv "A") BOOL BOOL --> BOOL))
->  --           , eq "p" BOOL (mv "X" $$$ [TT, TT])
->  --                    BOOL (mv "X" $$$ [TT, TT])
+>  --           , eq "p" BOOL (mv "X" $$$ [TRUE, TRUE])
+>  --                    BOOL (mv "X" $$$ [TRUE, TRUE])
 >  --           ]
 
 >           -- test 4: solve A with BOOL
@@ -311,13 +311,13 @@ given metacontext.
 >         , [ gal "A" TYPE
 >           , gal "B" TYPE
 >           , eq "q" TYPE (mv "A") TYPE (mv "B")
->           , eq "p" (mv "A" --> BOOL) (ll "a" TT)
->                    (mv "B" --> BOOL) (ll "b" TT)
+>           , eq "p" (mv "A" --> BOOL) (ll "a" TRUE)
+>                    (mv "B" --> BOOL) (ll "b" TRUE)
 >           ]
 
->           -- test 15: sigma metavariable; solve A with ((?, TT), ?)
+>           -- test 15: sigma metavariable; solve A with ((?, TRUE), ?)
 >         , [ gal "A" (_SIG "X" (NAT *: BOOL) (if'' TYPE (vv "X" %% Tl) NAT BOOL))
->           , eq "p" BOOL TT BOOL (mv "A" %% Hd %% Tl)
+>           , eq "p" BOOL TRUE BOOL (mv "A" %% Hd %% Tl)
 >           ]
 
 >           -- test 16: sigma variable; solve A with \ X Y . X &&& Y
@@ -348,9 +348,9 @@ given metacontext.
 >           -- test 19: sigma metavariable and equation; solve A
 >         , [ gal "A" (_SIG "X" BOOL (if'' TYPE (vv "X") NAT BOOL))
 >           , eq "p" (_SIG "X" BOOL (if'' TYPE (vv "X") NAT BOOL *: BOOL))
->                        (PAIR (mv "A" %% Hd) (PAIR (mv "A" %% Tl) TT))
+>                        (PAIR (mv "A" %% Hd) (PAIR (mv "A" %% Tl) TRUE))
 >                    (_SIG "X" BOOL (if'' TYPE (vv "X") NAT BOOL *: BOOL))
->                        (PAIR TT (PAIR (SU ZE) (mv "A" %% Hd)))
+>                        (PAIR TRUE (PAIR (SU ZE) (mv "A" %% Hd)))
 >           ]
 
 >           -- test 20: solve A with X ! and a with X -
@@ -370,10 +370,10 @@ given metacontext.
 >             : [])
 >           )
 
->           -- test 22: solve A with TT
+>           -- test 22: solve A with TRUE
 >         , ( boy "X" ((BOOL --> BOOL) *: BOOL)
 >             ( gal "A" BOOL
->             : eq "p" BOOL (vv "X" %% Hd $$ TT) BOOL (vv "X" %% Hd $$ mv "A")
+>             : eq "p" BOOL (vv "X" %% Hd $$ TRUE) BOOL (vv "X" %% Hd $$ mv "A")
 >             : [])
 >           )
 
@@ -385,11 +385,11 @@ given metacontext.
 >             : [])
 >           )
 
->           -- test 24: solve A with TT
+>           -- test 24: solve A with TRUE
 >         , [ gal "A" BOOL
 >           , eq "q" TYPE (if'' TYPE (mv "A") NAT BOOL) TYPE NAT
 >           , eq "p" (if'' TYPE (mv "A") NAT BOOL --> BOOL) (ll "a" (mv "A"))
->                    (NAT --> BOOL) (ll "a" TT)
+>                    (NAT --> BOOL) (ll "a" TRUE)
 >           ]
 
 >           -- test 25: fill a gap
@@ -408,10 +408,10 @@ given metacontext.
 >             )
 >           )
 
->           -- test 27: solve A with TT
+>           -- test 27: solve A with TRUE
 >         , [ gal "A" BOOL
 >           , eq "p" ((BOOL --> BOOL) --> BOOL) (ll "X" (vv "X" $$ mv "A"))
->                    ((BOOL --> BOOL) --> BOOL) (ll "X" (vv "X" $$ TT))
+>                    ((BOOL --> BOOL) --> BOOL) (ll "X" (vv "X" $$ TRUE))
 >           ]
 
 >           -- test 28: prune and solve A with \ _ . B -> B
@@ -419,7 +419,7 @@ given metacontext.
 >           : gal "B" (BOOL --> BOOL)
 >           : boy "x" (BOOL *: BOOL)  
 >             ( eq "p" BOOL (mv "A" $$ (vv "x" %% Hd))
->                      BOOL (mv "B" $$ TT)
+>                      BOOL (mv "B" $$ TRUE)
 >             : [])
 >           )
 
@@ -459,7 +459,7 @@ given metacontext.
 >         , ( gal "A" ((BOOL --> BOOL) --> BOOL)
 >           : boy "f" (BOOL --> BOOL)
 >             ( eq "p" BOOL (mv "A" $$ (ll "y" (vv "f" $$ vv "y")))
->                      BOOL (vv "f" $$ TT)
+>                      BOOL (vv "f" $$ TRUE)
 >             : [])
 >           )
 
@@ -475,7 +475,7 @@ given metacontext.
 >         , ( gal "A" ((BOOL *: BOOL --> BOOL) --> BOOL)
 >           : boy "f" (BOOL *: BOOL --> BOOL)
 >             ( eq "p" BOOL (mv "A" $$ (ll "b" (vv "f" $$ PAIR (vv "b" %% Hd) (vv "b" %% Tl))))
->                      BOOL (vv "f" $$ PAIR TT FF)
+>                      BOOL (vv "f" $$ PAIR TRUE FALSE)
 >             : [])
 >           )
 
@@ -484,7 +484,7 @@ given metacontext.
 >           : boy "z1" (BOOL --> BOOL)
 >             ( boy "z2" (BOOL --> BOOL)
 >               ( eq "p" BOOL (mv "u" $$ (ll "x" (PAIR (vv "z1" $$ vv "x") (vv "z2" $$ vv "x"))))
->                        BOOL TT
+>                        BOOL TRUE
 >               : [])
 >             )
 >           )
@@ -493,7 +493,7 @@ given metacontext.
 >         , ( gal "u" ((BOOL --> BOOL) --> BOOL)
 >           : boy "y" (BOOL --> BOOL *: BOOL)
 >             ( eq "p" BOOL (mv "u" $$ (ll "x" (vv "y" $$ vv "x" %% Hd)))
->                      BOOL (vv "y" $$ TT %% Hd)
+>                      BOOL (vv "y" $$ TRUE %% Hd)
 >             : [])
 >           )
 
@@ -530,10 +530,10 @@ given metacontext.
 >             )
 >           )
 
->           -- test 41: solve A with [ TT , TT ]
+>           -- test 41: solve A with [ TRUE , TRUE ]
 >         , ( gal "A" (BOOL *: BOOL)
 >           : eq "p" (BOOL *: BOOL) (mv "A")
->                    (BOOL *: BOOL) (PAIR (mv "A" %% Tl) TT)
+>                    (BOOL *: BOOL) (PAIR (mv "A" %% Tl) TRUE)
 >           : [])
 
 >           -- test 42
@@ -613,15 +613,15 @@ given metacontext.
 
 >           -- test 49: don't prune A too much
 >         , ( gal "F" (BOOL --> BOOL --> BOOL)
->           : gal "A" (_PI "X" BOOL (if'' TYPE (mv "F" $$ TT $$ vv "X") BOOL NAT --> BOOL))
+>           : gal "A" (_PI "X" BOOL (if'' TYPE (mv "F" $$ TRUE $$ vv "X") BOOL NAT --> BOOL))
 >           : gal "B" (BOOL --> BOOL)
 >           : boy "Y" BOOL
 >             ( eq "p" (BOOL --> BOOL) (mv "B")
->                      (if'' TYPE (mv "F" $$ TT $$ vv "Y") BOOL NAT --> BOOL) (mv "A" $$ vv "Y")
->             : boy "y" (if'' TYPE (mv "F" $$ TT $$ vv "Y") BOOL NAT)
->               ( eq "q" BOOL (mv "F" $$ vv "Y" $$ vv "Y") BOOL TT
+>                      (if'' TYPE (mv "F" $$ TRUE $$ vv "Y") BOOL NAT --> BOOL) (mv "A" $$ vv "Y")
+>             : boy "y" (if'' TYPE (mv "F" $$ TRUE $$ vv "Y") BOOL NAT)
+>               ( eq "q" BOOL (mv "F" $$ vv "Y" $$ vv "Y") BOOL TRUE
 >               : eq "r" BOOL (mv "A" $$ vv "Y" $$ vv "y")
->                        (if'' TYPE (mv "F" $$ TT $$ vv "Y") BOOL NAT) (vv "y")
+>                        (if'' TYPE (mv "F" $$ TRUE $$ vv "Y") BOOL NAT) (vv "y")
 >               : [])
 >             )
 >           )
@@ -647,7 +647,7 @@ given metacontext.
 
 >           -- test 52
 >         , ( gal "b" BOOL
->           : eq "p" BOOL (mv "b") BOOL TT
+>           : eq "p" BOOL (mv "b") BOOL TRUE
 >           : [])
 
 >           -- test 53
@@ -655,7 +655,7 @@ given metacontext.
 >           : gal "X" (if'' TYPE (mv "b") BOOL (BOOL --> BOOL))
 >           : eq "p" (BOOL --> BOOL) (ll "Y" (vv "Y"))
 >                    (if'' TYPE (mv "b") BOOL (BOOL --> BOOL)) (mv "X")
->           : eq "q" BOOL (mv "b") BOOL FF
+>           : eq "q" BOOL (mv "b") BOOL FALSE
 >           : [])
 
 >           -- test 54: twins with matching spines
@@ -692,7 +692,7 @@ given metacontext.
 >           : boy "X" (if'' TYPE (mv "a") (BOOL *: BOOL) (BOOL *: BOOL))
 >             ( gal "b" BOOL
 >             : gal "c" BOOL
->             : eq "r" BOOL (mv "a") BOOL TT
+>             : eq "r" BOOL (mv "a") BOOL TRUE
 >             : eq "p" (if'' TYPE (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) (vv "X") (BOOL *: BOOL) (PAIR (mv "b") (mv "c"))
 >             : [])
 >           )
@@ -704,7 +704,7 @@ given metacontext.
 >             ( gal "b" BOOL
 >             : gal "c" BOOL
 >             : eq "p" (if'' TYPE (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) (vv "X") (BOOL *: BOOL) (PAIR (mv "b") (mv "c"))
->             : eq "r" BOOL (mv "a") BOOL TT
+>             : eq "r" BOOL (mv "a") BOOL TRUE
 >             : [])
 >           )
 
@@ -726,14 +726,14 @@ given metacontext.
 
 >           -- test: dingo
 >         , [ gal "X" (_PI "N" NAT (fold'' TYPE BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
->           , eq "p" BOOL (mv "X" $$$ [ZE, FF])
->                    BOOL (mv "X" $$$ [ZE, TT])
+>           , eq "p" BOOL (mv "X" $$$ [ZE, FALSE])
+>                    BOOL (mv "X" $$$ [ZE, TRUE])
 >           ]
 
 >           -- test: dingo
 >         , [ gal "X" (_PI "N" NAT (fold'' TYPE BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
->           , eq "p" BOOL (mv "X" $$$ [ZE, FF])
->                    BOOL (mv "X" $$$ [SU ZE, FF])
+>           , eq "p" BOOL (mv "X" $$$ [ZE, FALSE])
+>                    BOOL (mv "X" $$$ [SU ZE, FALSE])
 >           ]
 
 >           -- stuck 1: nonlinear
@@ -792,9 +792,9 @@ given metacontext.
 >           : gal "S" TYPE
 >           : gal "T" (BOOL --> mv "S" --> BOOL)
 >           : eq "p" (_SIG "x" (mv "A") BOOL --> BOOL)
->                         (ll "x" (mv "B" $$ TT $$ (vv "x" %% Hd)))
+>                         (ll "x" (mv "B" $$ TRUE $$ (vv "x" %% Hd)))
 >                     (_SIG "x" (mv "S") BOOL --> BOOL)
->                         (ll "x" (mv "T" $$ TT $$ (vv "x" %% Hd)))
+>                         (ll "x" (mv "T" $$ TRUE $$ (vv "x" %% Hd)))
 >           : [])
 
 >           -- stuck 8: awkward occurrence
@@ -807,14 +807,14 @@ given metacontext.
 >           -- stuck 9
 >         , ( gal "A" (BOOL --> BOOL)
 >           : gal "B" (BOOL --> BOOL)
->           : gal "a" (if'' TYPE (mv "A" $$ TT) NAT BOOL)
->           : gal "b" (if'' TYPE (mv "B" $$ TT) NAT BOOL)
+>           : gal "a" (if'' TYPE (mv "A" $$ TRUE) NAT BOOL)
+>           : gal "b" (if'' TYPE (mv "B" $$ TRUE) NAT BOOL)
 >           : eq "p" (_SIG "x" BOOL (if'' TYPE (mv "B" $$ vv "x") NAT BOOL))
->                        (PAIR TT (mv "b"))
->                    (if'' TYPE (mv "A" $$ TT) NAT BOOL)
+>                        (PAIR TRUE (mv "b"))
+>                    (if'' TYPE (mv "A" $$ TRUE) NAT BOOL)
 >                        (mv "a")
 >           : eq "q" TYPE (_SIG "x" BOOL (if'' TYPE (mv "B" $$ vv "x") NAT BOOL))
->                    TYPE (if'' TYPE (mv "A" $$ TT) NAT BOOL)
+>                    TYPE (if'' TYPE (mv "A" $$ TRUE) NAT BOOL)
 >           : [])
 
 >           -- stuck 10
@@ -839,8 +839,8 @@ given metacontext.
 
 >           -- stuck 12
 >         , ( gal "B" (BOOL --> BOOL)
->           : gal "F" (if'' TYPE (mv "B" $$ TT) BOOL BOOL --> BOOL)
->           : eq "p" (if'' TYPE (mv "B" $$ TT) BOOL BOOL --> BOOL)
+>           : gal "F" (if'' TYPE (mv "B" $$ TRUE) BOOL BOOL --> BOOL)
+>           : eq "p" (if'' TYPE (mv "B" $$ TRUE) BOOL BOOL --> BOOL)
 >                        (ll "Y" (mv "F" $$ vv "Y"))
 >                    (BOOL --> BOOL) 
 >                        (ll "Y" (vv "Y"))
@@ -850,18 +850,18 @@ given metacontext.
 >         , ( gal "A" BOOL
 >           : gal "C" BOOL
 >           : gal "B" (BOOL --> BOOL)
->           : gal "F" (if'' TYPE (mv "B" $$ TT) BOOL BOOL --> BOOL)
->           : eq "p" (_PI "X" (if'' TYPE (mv "B" $$ TT) BOOL BOOL) (if'' TYPE (mv "F" $$ vv "X") BOOL BOOL --> BOOL))
+>           : gal "F" (if'' TYPE (mv "B" $$ TRUE) BOOL BOOL --> BOOL)
+>           : eq "p" (_PI "X" (if'' TYPE (mv "B" $$ TRUE) BOOL BOOL) (if'' TYPE (mv "F" $$ vv "X") BOOL BOOL --> BOOL))
 >                        (ll "X" (ll "x" (mv "A")))
 >                    (_PI "X" BOOL (if'' TYPE (vv "X") BOOL BOOL --> BOOL))
 >                        (ll "X" (ll "x" (mv "C")))
->           : eq "q" TYPE (_PI "X" (if'' TYPE (mv "B" $$ TT) BOOL BOOL) (if'' TYPE (mv "F" $$ vv "X") BOOL BOOL --> BOOL)) TYPE (_PI "X" BOOL (if'' TYPE (vv "X") BOOL BOOL --> BOOL))
+>           : eq "q" TYPE (_PI "X" (if'' TYPE (mv "B" $$ TRUE) BOOL BOOL) (if'' TYPE (mv "F" $$ vv "X") BOOL BOOL --> BOOL)) TYPE (_PI "X" BOOL (if'' TYPE (vv "X") BOOL BOOL --> BOOL))
 >           : [])
 
 >           -- test 25: solve with extensionality and refl
 >         , [ gal "A" BOOL
->           , eq "p" (if'' TYPE (mv "A") NAT BOOL --> BOOL) (ll "x" TT)
->                    (NAT --> BOOL) (ll "x" TT)
+>           , eq "p" (if'' TYPE (mv "A") NAT BOOL --> BOOL) (ll "x" TRUE)
+>                    (NAT --> BOOL) (ll "x" TRUE)
 >           , eq "q" TYPE (if'' TYPE (mv "A") NAT BOOL) TYPE NAT
 >           ]
 
@@ -899,12 +899,12 @@ given metacontext.
 >           )
 
 >           -- fail 4: rigid-rigid constant clash
->         , ( eq "p" BOOL TT BOOL FF
+>         , ( eq "p" BOOL TRUE BOOL FALSE
 >           : [])
 
 >           -- fail 5: spine mismatch
 >         , ( eq "p" (BOOL --> BOOL) (ll "x" (vv "x"))
->                    ((BOOL --> BOOL) --> BOOL) (ll "f" (vv "f" $$ TT))
+>                    ((BOOL --> BOOL) --> BOOL) (ll "f" (vv "f" $$ TRUE))
 >           : [])
 
 >           -- fail 6
@@ -923,7 +923,7 @@ given metacontext.
 >           -- fail 8
 >         , ( gal "A" TYPE
 >           : boy "x" (mv "A")
->             ( eq "p" (mv "A") (vv "x") BOOL TT
+>             ( eq "p" (mv "A") (vv "x") BOOL TRUE
 >             : [])
 >           )
 

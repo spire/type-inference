@@ -46,8 +46,8 @@ However, it can look up metavariable types in the context.
 > -- checking neutrals here, so =p
 > equalise TYPE  TYPE  TYPE  = return TYPE
 > equalise TYPE  BOOL  BOOL  = return BOOL
-> equalise BOOL  TT    TT    = return TT
-> equalise BOOL  FF    FF    = return FF
+> equalise BOOL  TRUE  TRUE  = return TRUE
+> equalise BOOL  FALSE FALSE = return FALSE
 > equalise TYPE   (Pi _A _B) (Pi _S _T) = do
 >     _U <- equalise TYPE _A _S
 >     Pi _U <$>   bindsInScope _U _B _T
@@ -105,8 +105,8 @@ and $[[T]]$ are the results.
 > equaliseN h (e :< If _T u v) h' (e' :< If _T' u' v') = do
 >     (h'', e'', BOOL)  <- equaliseN h e h' e'
 >     _U''              <- bindsInScope BOOL _T _T' (\ x _U _U' -> equalise TYPE _U _U')
->     u''               <- equalise (inst _U'' TT) u u'
->     v''               <- equalise (inst _U'' FF) v v'
+>     u''               <- equalise (inst _U'' TRUE) u u'
+>     v''               <- equalise (inst _U'' FALSE) v v'
 >     return (h'', e'' :< If _U'' u'' v'', inst _U'' (N h'' e''))
 > equaliseN h1 (e1 :< Fold _P1 cz1 cs1) h2 (e2 :< Fold _P2 cz2 cs2) = do
 >     (h, e, NAT)  <- equaliseN h1 e1 h2 e2
