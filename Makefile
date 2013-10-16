@@ -5,6 +5,11 @@ deps: lib-she
 
 debug: cabal-install-debug
 
+test:
+	mkdir -p tmp
+	cd src && runhaskell PatternUnify/Test.lhs > ../tmp/test.out
+	if grep FAIL tmp/test.out; then exit 1; else exit 0; fi
+
 ######################################################################
 
 cabal-install: src/dist

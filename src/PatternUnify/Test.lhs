@@ -173,12 +173,6 @@ given metacontext.
 >           -- test 1: solve B with \ _ . A
 >         , ( gal "A" BOOL
 >           : gal "B" (BOOL --> BOOL)
->           : []
->           )
-
->           -- test 1: solve B with \ _ . A
->         , ( gal "A" BOOL
->           : gal "B" (BOOL --> BOOL)
 >           : boy "x" BOOL 
 >             ( eq "p" BOOL (mv "A") BOOL (mv "B" $$ vv "x")
 >             : [])
