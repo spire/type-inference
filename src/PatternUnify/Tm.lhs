@@ -43,7 +43,7 @@ binding) so as to factor out common patterns in the typechecker.
 >     Pi, Sig  :: Type -> Bind Nom Type -> Tm
 
 > type Nom    = Name Tm
-> data Can t  = Set | Type | Pair t t | Bool | Tt | Ff | Nat | Ze | Su t
+> data Can t  = Type | Pair t t | Bool | Tt | Ff | Nat | Ze | Su t
 > data Head   = V Nom Twin | M Nom
 > data Twin   = Only | TwinL | TwinR
 > data Elim   = A Tm | Hd | Tl | If (Bind Nom Type) Tm Tm | Fold (Bind Nom Type) Tm (Bind Nom (Bind Nom Tm))
@@ -140,7 +140,6 @@ However, the action on morphisms can be defined thus:
 >     pretty (C c)    = pretty c
 
 > instance Pretty (Can Tm) where
->     pretty Set         = return $ text "Set"
 >     pretty Type        = return $ text "Type"
 >     pretty Bool        = return $ text "Bool"
 >     pretty Tt          = return $ text "TT"
@@ -220,7 +219,6 @@ synonyms are abbreviations that can be used \scare{on the left} (in
 patterns) as well as \scare{on the right} (in expressions).
 
 > pattern TYPE          = C Type
-> pattern SET           = C Set
 > pattern PAIR s t      = C (Pair s t)
 > pattern BOOL          = C Bool
 > pattern TT            = C Tt

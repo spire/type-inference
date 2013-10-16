@@ -508,7 +508,7 @@ Subsection~\longref{subsec:miller:spec:decompose}.
 >         P _S         -> splitSig B0 x _S >>= \ m -> case m of
 >             Just (y, _A, z, _B, s, _)  -> solver (allProb y _A  (allProb z _B (subst x s q)))
 >             Nothing                    -> inScope x (P _S) $ solver q
->         Twins _S _T  -> equal SET _S _T >>= \ c ->
+>         Twins _S _T  -> equal TYPE _S _T >>= \ c ->
 >                                     -- get rid of twin variables
 >             if c  then  solver (allProb x _S (subst x (var x) q))
 >                   else  inScope x (Twins _S _T) $ solver q
@@ -551,15 +551,15 @@ reflexive.
 
 > rigidRigid :: Equation -> Contextual ()
 >
-> rigidRigid (EQN SET (Pi _A _B) SET (Pi _S _T)) = do
+> rigidRigid (EQN TYPE (Pi _A _B) TYPE (Pi _S _T)) = do
 >     x <- fresh (s2n "x")
->     active $ eqnProb SET _A SET _S
->     active $ allTwinsProb x _A _S (eqnProb SET (inst _B (twinL x)) SET (inst _T (twinR x)))
+>     active $ eqnProb TYPE _A TYPE _S
+>     active $ allTwinsProb x _A _S (eqnProb TYPE (inst _B (twinL x)) TYPE (inst _T (twinR x)))
 >
-> rigidRigid (EQN SET (Sig _A _B) SET (Sig _S _T)) = do
+> rigidRigid (EQN TYPE (Sig _A _B) TYPE (Sig _S _T)) = do
 >     x <- fresh (s2n "x")
->     active $ eqnProb SET _A SET _S
->     active $ allTwinsProb x _A _S (eqnProb SET (inst _B (twinL x)) SET (inst _T (twinR x)))
+>     active $ eqnProb TYPE _A TYPE _S
+>     active $ allTwinsProb x _A _S (eqnProb TYPE (inst _B (twinL x)) TYPE (inst _T (twinR x)))
 >
 > rigidRigid (EQNO (N (V x w) e) (N (V x' w') e')) =
 >     matchSpine x w e x' w' e' >> return ()
@@ -573,24 +573,24 @@ with different constructors or variables, as defined in
 Figure~\longref{fig:miller:impossible}.
 
 > orthogonal :: Equation -> Bool
-> orthogonal (EQN SET (Pi _ _) SET (Sig _ _))     = True
-> orthogonal (EQN SET (Pi _ _) SET BOOL)          = True
-> orthogonal (EQN SET (Sig _ _) SET (Pi _ _))     = True
-> orthogonal (EQN SET (Sig _ _) SET BOOL)         = True
-> orthogonal (EQN SET BOOL SET (Pi _ _))          = True
-> orthogonal (EQN SET BOOL SET (Sig _ _))         = True
+> orthogonal (EQN TYPE (Pi _ _) TYPE (Sig _ _))   = True
+> orthogonal (EQN TYPE (Pi _ _) TYPE BOOL)        = True
+> orthogonal (EQN TYPE (Sig _ _) TYPE (Pi _ _))   = True
+> orthogonal (EQN TYPE (Sig _ _) TYPE BOOL)       = True
+> orthogonal (EQN TYPE BOOL TYPE (Pi _ _))        = True
+> orthogonal (EQN TYPE BOOL TYPE (Sig _ _))       = True
 > orthogonal (EQN BOOL TT BOOL FF)                = True
 > orthogonal (EQN BOOL FF BOOL TT)                = True
 >
-> orthogonal (EQN SET (Pi _ _)  _ (N (V _ _) _))  = True
-> orthogonal (EQN SET (Sig _ _) _ (N (V _ _) _))  = True
-> orthogonal (EQN SET BOOL _ (N (V _ _) _))       = True
+> orthogonal (EQN TYPE (Pi _ _)  _ (N (V _ _) _)) = True
+> orthogonal (EQN TYPE (Sig _ _) _ (N (V _ _) _)) = True
+> orthogonal (EQN TYPE BOOL _ (N (V _ _) _))      = True
 > orthogonal (EQN BOOL TT _ (N (V _ _) _))        = True
 > orthogonal (EQN BOOL FF _ (N (V _ _) _))        = True
 >
-> orthogonal (EQN _ (N (V _ _) _) SET (Pi _ _))   = True
-> orthogonal (EQN _ (N (V _ _) _) SET (Sig _ _))  = True
-> orthogonal (EQN _ (N (V _ _) _) SET BOOL)       = True
+> orthogonal (EQN _ (N (V _ _) _) TYPE (Pi _ _))  = True
+> orthogonal (EQN _ (N (V _ _) _) TYPE (Sig _ _)) = True
+> orthogonal (EQN _ (N (V _ _) _) TYPE BOOL)      = True
 > orthogonal (EQN _ (N (V _ _) _) BOOL TT)        = True
 > orthogonal (EQN _ (N (V _ _) _) BOOL FF)        = True
 >

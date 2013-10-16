@@ -44,25 +44,22 @@ However, it can look up metavariable types in the context.
 > equalise :: Type -> Tm -> Tm -> Contextual Tm
 > -- We believe TYPE TYPE TYPE occurs like it does when 
 > -- checking neutrals here, so =p
-> equalise TYPE  TYPE   TYPE   = return TYPE
-> equalise TYPE  SET   SET   = return SET
-> equalise TYPE  _S    _T    = equalise SET _S _T
-> equalise SET   SET   SET   = return SET
-> equalise SET   BOOL  BOOL  = return BOOL
+> equalise TYPE  TYPE  TYPE  = return TYPE
+> equalise TYPE  BOOL  BOOL  = return BOOL
 > equalise BOOL  TT    TT    = return TT
 > equalise BOOL  FF    FF    = return FF
-> equalise SET   (Pi _A _B) (Pi _S _T) = do
->     _U <- equalise SET _A _S
+> equalise TYPE   (Pi _A _B) (Pi _S _T) = do
+>     _U <- equalise TYPE _A _S
 >     Pi _U <$>   bindsInScope _U _B _T
->                    (\ x _B' _T' -> equalise SET _B' _T')
+>                    (\ x _B' _T' -> equalise TYPE _B' _T')
 > -- Eta expansion of neutrals
 > equalise (Pi _U _V) f g =
 >     L <$>  bindInScope _U _V
 >                (\ x _V' -> equalise _V' (f $$ var x) (g $$ var x))
-> equalise SET (Sig _A _B) (Sig _S _T) = do
->     _U <- equalise SET _A _S
+> equalise TYPE (Sig _A _B) (Sig _S _T) = do
+>     _U <- equalise TYPE _A _S
 >     Sig _U <$>  bindsInScope _U _B _T
->                    (\ x _B' _T' -> equalise SET _B' _T')
+>                    (\ x _B' _T' -> equalise TYPE _B' _T')
 > -- Eta expansion of neutrals
 > equalise (Sig _U _V) s t = do
 >     u0 <- equalise _U (hd s) (hd t)
@@ -75,7 +72,7 @@ However, it can look up metavariable types in the context.
 
 %if False
 
-> equalise SET  NAT     NAT     = return NAT
+> equalise TYPE NAT     NAT     = return NAT
 > equalise NAT  ZE      ZE      = return ZE
 > equalise NAT  (SU m)  (SU n)  = SU <$> equalise NAT m n
 

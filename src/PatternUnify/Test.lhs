@@ -158,13 +158,13 @@ given metacontext.
 > tests = [ 
 
 >           -- test 0: solve B with A
->           ( gal "A" SET
->           : gal "B" SET
->           : eq "p" SET (mv "A") SET (mv "B")
+>           ( gal "A" TYPE
+>           : gal "B" TYPE
+>           : eq "p" TYPE (mv "A") TYPE (mv "B")
 >           : [])
 
 >           -- test 1: solve B with \ _ . A
->         , let _P = _SIG "b2" BOOL (if'' SET (vv "b2") BOOL BOOL)
+>         , let _P = _SIG "b2" BOOL (if'' TYPE (vv "b2") BOOL BOOL)
 >               _T = NAT --> _P
 >               _F = _T --> NAT
 >           in
@@ -185,7 +185,7 @@ given metacontext.
 >           )
 
 >           -- test 2: restrict B to second argument
->         , ( gal "A" SET
+>         , ( gal "A" TYPE
 >           : gal "B" (mv "A" --> mv "A" --> BOOL)
 >           : eq "p" (mv "A" --> mv "A" --> BOOL)
 >                        (lam (s2n "x") (lam (s2n "y") (mv "B" $$$ [vv "y", vv "x"])))
@@ -194,19 +194,19 @@ given metacontext.
 >           : [])
 
 >           -- test 3: X unchanged
->         , [ gal "X" (_PI "A" BOOL (if'' SET (vv "A") BOOL BOOL --> BOOL)) 
+>         , [ gal "X" (_PI "A" BOOL (if'' TYPE (vv "A") BOOL BOOL --> BOOL)) 
 >           , eq "p" BOOL (mv "X" $$$ [TT, TT])
 >                    BOOL (mv "X" $$$ [TT, TT])
 >           ]
 
 >           -- test: dingo
->         , [ gal "X" (_PI "N" NAT (fold'' SET BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
+>         , [ gal "X" (_PI "N" NAT (fold'' TYPE BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
 >           , eq "p" BOOL (mv "X" $$$ [ZE, TT])
 >                    BOOL (mv "X" $$$ [ZE, TT])
 >           ]
 
 >           -- test: dingo
->         , [ gal "X" (_PI "N" NAT (fold'' SET BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
+>         , [ gal "X" (_PI "N" NAT (fold'' TYPE BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
 >           , eq "p" BOOL (mv "X" $$$ [SU ZE, FF])
 >                    BOOL (mv "X" $$$ [SU ZE, FF])
 >           ]
@@ -214,29 +214,29 @@ given metacontext.
 
 >           -- test: unify ?X : set against set : set
 >         , [ gal "Z" TYPE
->           , eq "p" TYPE (mv "Z") TYPE SET
+>           , eq "p" TYPE (mv "Z") TYPE TYPE
 >           ]
 
 
 >  -- The type inference problem here is that Bool has type Z.
->  -- We hope to learn what Z is SET from this.
+>  -- We hope to learn what Z is TYPE from this.
 >  --           -- test 3 + 1/3:
->  --         , [ gal "Z" SET
+>  --         , [ gal "Z" TYPE
 >  --           , gal "X" (_PI "A" BOOL (if'' (mv "Z") (vv "A") BOOL BOOL --> BOOL))
 >  --           , eq "p" BOOL (mv "X" $$$ [TT, TT])
 >  --                    BOOL (mv "X" $$$ [TT, TT])
 >  --           ]
 
 >           -- test 4: solve A with BOOL
->         , [ gal "A" SET
->           , eq "p" SET (mv "A") SET BOOL
+>         , [ gal "A" TYPE
+>           , eq "p" TYPE (mv "A") TYPE BOOL
 >           ]
 
 >           -- test 5: solve A with B -> B
->         , [ gal "A" SET
->           , gal "B" SET
->           , gal "C" SET
->           , eq "p" SET (mv "A") SET (mv "B" --> mv "B")
+>         , [ gal "A" TYPE
+>           , gal "B" TYPE
+>           , gal "C" TYPE
+>           , eq "p" TYPE (mv "A") TYPE (mv "B" --> mv "B")
 >           ]
 
 >           -- test 6: solve A with \ X . B && X
@@ -259,13 +259,13 @@ given metacontext.
 >           )
 
 >           -- test 8: solve S with A and T with B
->         , [ gal "A" SET
->           , gal "S" SET
+>         , [ gal "A" TYPE
+>           , gal "S" TYPE
 >           , gal "B" (mv "A" --> BOOL)
 >           , gal "T" (mv "S" --> BOOL)
 >           , eq "p" (mv "A" --> BOOL) (ll "x" (mv "B" $$ vv "x"))
 >                    (mv "S" --> BOOL) (ll "x" (mv "T" $$ vv "x"))
->           , eq "q" SET (mv "A") SET (mv "S")
+>           , eq "q" TYPE (mv "A") TYPE (mv "S")
 >           ]
 
 >           -- test 9: solve M with \ y . y
@@ -288,18 +288,18 @@ given metacontext.
 >           )
 
 >           -- test 11: solve A with \ _ y . y
->         , [ gal "A" (_PI "X" BOOL (if'' SET (vv "X") NAT BOOL --> if'' SET (vv "X") NAT BOOL))
->           , eq "p" (_PI "X" BOOL (if'' SET (vv "X") NAT BOOL --> if'' SET (vv "X") NAT BOOL))
+>         , [ gal "A" (_PI "X" BOOL (if'' TYPE (vv "X") NAT BOOL --> if'' TYPE (vv "X") NAT BOOL))
+>           , eq "p" (_PI "X" BOOL (if'' TYPE (vv "X") NAT BOOL --> if'' TYPE (vv "X") NAT BOOL))
 >                        (ll "X" (ll "y" (vv "y")))
->                    (_PI "X" BOOL (if'' SET (vv "X") NAT BOOL --> if'' SET (vv "X") NAT BOOL))
+>                    (_PI "X" BOOL (if'' TYPE (vv "X") NAT BOOL --> if'' TYPE (vv "X") NAT BOOL))
 >                        (ll "X" (mv "A" $$ vv "X"))
 >           ]
 
 >           -- test 12: solve f with \ _ y . y after lifting type
->         , ( gal "f" (_PI "Y" BOOL (if'' SET (vv "Y") NAT BOOL --> if'' SET (vv "Y") NAT BOOL))
+>         , ( gal "f" (_PI "Y" BOOL (if'' TYPE (vv "Y") NAT BOOL --> if'' TYPE (vv "Y") NAT BOOL))
 >           : boy "X" BOOL
->             ( eq "p" (if'' SET (vv "X") NAT BOOL --> if'' SET (vv "X") NAT BOOL) (ll "y" (vv "y"))
->                      (if'' SET (vv "X") NAT BOOL --> if'' SET (vv "X") NAT BOOL) (mv "f" $$ vv "X")
+>             ( eq "p" (if'' TYPE (vv "X") NAT BOOL --> if'' TYPE (vv "X") NAT BOOL) (ll "y" (vv "y"))
+>                      (if'' TYPE (vv "X") NAT BOOL --> if'' TYPE (vv "X") NAT BOOL) (mv "f" $$ vv "X")
 >             : [])
 >           )
 
@@ -314,21 +314,21 @@ given metacontext.
 >           )
 
 >           -- test 14: heterogeneous equality
->         , [ gal "A" SET
->           , gal "B" SET
->           , eq "q" SET (mv "A") SET (mv "B")
+>         , [ gal "A" TYPE
+>           , gal "B" TYPE
+>           , eq "q" TYPE (mv "A") TYPE (mv "B")
 >           , eq "p" (mv "A" --> BOOL) (ll "a" TT)
 >                    (mv "B" --> BOOL) (ll "b" TT)
 >           ]
 
 >           -- test 15: sigma metavariable; solve A with ((?, TT), ?)
->         , [ gal "A" (_SIG "X" (NAT *: BOOL) (if'' SET (vv "X" %% Tl) NAT BOOL))
+>         , [ gal "A" (_SIG "X" (NAT *: BOOL) (if'' TYPE (vv "X" %% Tl) NAT BOOL))
 >           , eq "p" BOOL TT BOOL (mv "A" %% Hd %% Tl)
 >           ]
 
 >           -- test 16: sigma variable; solve A with \ X Y . X &&& Y
 >         , ( gal "A" (BOOL --> BOOL --> BOOL)
->           : boy "B" (_SIG "X" BOOL (if'' SET (vv "X") NAT BOOL *: BOOL))
+>           : boy "B" (_SIG "X" BOOL (if'' TYPE (vv "X") NAT BOOL *: BOOL))
 >             ( eq "p" BOOL (mv "A" $$ (vv "B" %% Hd) $$ (vv "B" %% Tl %% Tl))
 >                      BOOL ((vv "B" %% Hd) &&& (vv "B" %% Tl %% Tl))
 >             : [])
@@ -336,7 +336,7 @@ given metacontext.
 
 >           -- test 17: sigma variable; restrict A to \ _ X . ?A' X
 >         , ( gal "A" (BOOL --> BOOL --> BOOL)
->           : boy "B" (_SIG "X" BOOL (if'' SET (vv "X") NAT BOOL *: BOOL))
+>           : boy "B" (_SIG "X" BOOL (if'' TYPE (vv "X") NAT BOOL *: BOOL))
 >             ( eq "p" BOOL (mv "A" $$$ [vv "B" %% Hd, vv "B" %% Tl %% Tl])
 >                      BOOL (mv "A" $$$ [vv "B" %% Tl %% Tl, vv "B" %% Tl %% Tl])
 >             : [])
@@ -352,19 +352,19 @@ given metacontext.
 >           )
 
 >           -- test 19: sigma metavariable and equation; solve A
->         , [ gal "A" (_SIG "X" BOOL (if'' SET (vv "X") NAT BOOL))
->           , eq "p" (_SIG "X" BOOL (if'' SET (vv "X") NAT BOOL *: BOOL))
+>         , [ gal "A" (_SIG "X" BOOL (if'' TYPE (vv "X") NAT BOOL))
+>           , eq "p" (_SIG "X" BOOL (if'' TYPE (vv "X") NAT BOOL *: BOOL))
 >                        (PAIR (mv "A" %% Hd) (PAIR (mv "A" %% Tl) TT))
->                    (_SIG "X" BOOL (if'' SET (vv "X") NAT BOOL *: BOOL))
+>                    (_SIG "X" BOOL (if'' TYPE (vv "X") NAT BOOL *: BOOL))
 >                        (PAIR TT (PAIR (SU ZE) (mv "A" %% Hd)))
 >           ]
 
 >           -- test 20: solve A with X ! and a with X -
->         , ( boy "X" (_SIG "Y" BOOL (if'' SET (vv "Y") NAT BOOL))
+>         , ( boy "X" (_SIG "Y" BOOL (if'' TYPE (vv "Y") NAT BOOL))
 >             ( gal "A" BOOL
->             : gal "a" (if'' SET (mv "A") NAT BOOL)
->             : eq "p" (_SIG "Y" BOOL (if'' SET (vv "Y") NAT BOOL)) (vv "X")
->                      (_SIG "Y" BOOL (if'' SET (vv "Y") NAT BOOL)) (PAIR (mv "A") (mv "a"))
+>             : gal "a" (if'' TYPE (mv "A") NAT BOOL)
+>             : eq "p" (_SIG "Y" BOOL (if'' TYPE (vv "Y") NAT BOOL)) (vv "X")
+>                      (_SIG "Y" BOOL (if'' TYPE (vv "Y") NAT BOOL)) (PAIR (mv "A") (mv "a"))
 >             : [])
 >           )
 
@@ -393,22 +393,22 @@ given metacontext.
 
 >           -- test 24: solve A with TT
 >         , [ gal "A" BOOL
->           , eq "q" SET (if'' SET (mv "A") NAT BOOL) SET NAT
->           , eq "p" (if'' SET (mv "A") NAT BOOL --> BOOL) (ll "a" (mv "A"))
+>           , eq "q" TYPE (if'' TYPE (mv "A") NAT BOOL) TYPE NAT
+>           , eq "p" (if'' TYPE (mv "A") NAT BOOL --> BOOL) (ll "a" (mv "A"))
 >                    (NAT --> BOOL) (ll "a" TT)
 >           ]
 
 >           -- test 25: fill a gap
->         , ( eq "p" SET (BOOL --> BOOL) SET (BOOL --> BOOL)
+>         , ( eq "p" TYPE (BOOL --> BOOL) TYPE (BOOL --> BOOL)
 >           : [])
 
 >           -- test 26: solve A with \ _ Y . Y
 >         , ( gal "A" (BOOL --> BOOL --> BOOL)
 >           : boy "X" BOOL
 >             ( boy "Z" BOOL      
->               ( eq "p" (if'' SET (mv "A" $$ vv "X" $$ vv "X") BOOL NAT --> BOOL)
+>               ( eq "p" (if'' TYPE (mv "A" $$ vv "X" $$ vv "X") BOOL NAT --> BOOL)
 >                            (ll "Y" (mv "A" $$ vv "X" $$ vv "Z"))
->                        (if'' SET (vv "X") BOOL NAT --> BOOL)
+>                        (if'' TYPE (vv "X") BOOL NAT --> BOOL)
 >                            (ll "Y" (vv "X"))
 >               : [])
 >             )
@@ -444,11 +444,11 @@ given metacontext.
 >           : [])
 
 >           -- test 31: solve A with BOOL and f with \ x . x
->         , ( gal "A" SET
+>         , ( gal "A" TYPE
 >           : gal "f" (mv "A" --> BOOL)
 >           : eq "p" (mv "A" --> BOOL) (mv "f")
 >                    (mv "A" --> mv "A") (ll "x" (vv "x"))
->           : eq "q" SET (mv "A" --> BOOL) SET (mv "A" --> mv "A")
+>           : eq "q" TYPE (mv "A" --> BOOL) TYPE (mv "A" --> mv "A")
 >           : [])
 
 >           -- test 32: prune B and solve A with f B B 
@@ -512,14 +512,14 @@ given metacontext.
 >           : [])
 
 >           -- test 39: solve u with \ _ x . x
->         , ( gal "u" (_PI "v" (_SIG "S" BOOL (if'' SET (vv "S") BOOL NAT *: (if'' SET (vv "S") BOOL NAT --> BOOL)))
->                         (if'' SET (vv "v" %% Tl %% Tl $$ (vv "v" %% Tl %% Hd)) BOOL NAT --> if'' SET (vv "v" %% Tl %% Tl $$ (vv "v" %% Tl %% Hd)) BOOL NAT))
+>         , ( gal "u" (_PI "v" (_SIG "S" BOOL (if'' TYPE (vv "S") BOOL NAT *: (if'' TYPE (vv "S") BOOL NAT --> BOOL)))
+>                         (if'' TYPE (vv "v" %% Tl %% Tl $$ (vv "v" %% Tl %% Hd)) BOOL NAT --> if'' TYPE (vv "v" %% Tl %% Tl $$ (vv "v" %% Tl %% Hd)) BOOL NAT))
 >           : boy "A" BOOL
->             ( boy "a" (if'' SET (vv "A") BOOL NAT)
->               ( boy "f" (if'' SET (vv "A") BOOL NAT --> BOOL)
->                 ( eq "p" (if'' SET (vv "f" $$ vv "a") BOOL NAT --> if'' SET (vv "f" $$ vv "a") BOOL NAT)
+>             ( boy "a" (if'' TYPE (vv "A") BOOL NAT)
+>               ( boy "f" (if'' TYPE (vv "A") BOOL NAT --> BOOL)
+>                 ( eq "p" (if'' TYPE (vv "f" $$ vv "a") BOOL NAT --> if'' TYPE (vv "f" $$ vv "a") BOOL NAT)
 >                              (mv "u" $$ PAIR (vv "A") (PAIR (vv "a") (vv "f")))
->                          (if'' SET (vv "f" $$ vv "a") BOOL NAT --> if'' SET (vv "f" $$ vv "a") BOOL NAT)
+>                          (if'' TYPE (vv "f" $$ vv "a") BOOL NAT --> if'' TYPE (vv "f" $$ vv "a") BOOL NAT)
 >                              (ll "x" (vv "x"))
 >                 : [])
 >               )
@@ -544,10 +544,10 @@ given metacontext.
 
 >           -- test 42
 >         , ( gal "T" (BOOL --> BOOL)
->           : gal "A" (_PI "Y" BOOL (if'' SET (mv "T" $$ vv "Y") BOOL NAT --> BOOL))
+>           : gal "A" (_PI "Y" BOOL (if'' TYPE (mv "T" $$ vv "Y") BOOL NAT --> BOOL))
 >           : gal "B" BOOL
 >           : boy "X" BOOL
->             ( boy "t" (if'' SET (mv "T" $$ vv "X") BOOL NAT)
+>             ( boy "t" (if'' TYPE (mv "T" $$ vv "X") BOOL NAT)
 >               ( eq "p" BOOL (mv "B") BOOL (mv "A" $$ vv "X" $$ vv "t")
 >               : [])
 >             )
@@ -566,13 +566,13 @@ given metacontext.
 >           -- test 44: false occurrence
 >         , ( gal "A" BOOL
 >           : gal "B" BOOL
->           : gal "C" SET
+>           : gal "C" TYPE
 >           : eq "p" (mv "C" --> BOOL) (lamK (mv "B"))
 >                    (mv "C" --> BOOL) (lamK (mv "A"))
 >           : [])
 
 >           -- test 45
->         , ( gal "A" SET
+>         , ( gal "A" TYPE
 >           : gal "B" (mv "A" --> BOOL)
 >           : gal "C" (mv "A" --> BOOL)
 >           : boy "x" (mv "A")
@@ -611,23 +611,23 @@ given metacontext.
 
 >           -- test 48
 >         , ( gal "A" (BOOL --> BOOL)
->           : gal "B" SET
->           : eq "p" SET (mv "B")
->                    SET (_PI "X" BOOL (if'' SET (mv "A" $$ vv "X") BOOL BOOL))
+>           : gal "B" TYPE
+>           : eq "p" TYPE (mv "B")
+>                    TYPE (_PI "X" BOOL (if'' TYPE (mv "A" $$ vv "X") BOOL BOOL))
 >                    
 >           : [])
 
 >           -- test 49: don't prune A too much
 >         , ( gal "F" (BOOL --> BOOL --> BOOL)
->           : gal "A" (_PI "X" BOOL (if'' SET (mv "F" $$ TT $$ vv "X") BOOL NAT --> BOOL))
+>           : gal "A" (_PI "X" BOOL (if'' TYPE (mv "F" $$ TT $$ vv "X") BOOL NAT --> BOOL))
 >           : gal "B" (BOOL --> BOOL)
 >           : boy "Y" BOOL
 >             ( eq "p" (BOOL --> BOOL) (mv "B")
->                      (if'' SET (mv "F" $$ TT $$ vv "Y") BOOL NAT --> BOOL) (mv "A" $$ vv "Y")
->             : boy "y" (if'' SET (mv "F" $$ TT $$ vv "Y") BOOL NAT)
+>                      (if'' TYPE (mv "F" $$ TT $$ vv "Y") BOOL NAT --> BOOL) (mv "A" $$ vv "Y")
+>             : boy "y" (if'' TYPE (mv "F" $$ TT $$ vv "Y") BOOL NAT)
 >               ( eq "q" BOOL (mv "F" $$ vv "Y" $$ vv "Y") BOOL TT
 >               : eq "r" BOOL (mv "A" $$ vv "Y" $$ vv "y")
->                        (if'' SET (mv "F" $$ TT $$ vv "Y") BOOL NAT) (vv "y")
+>                        (if'' TYPE (mv "F" $$ TT $$ vv "Y") BOOL NAT) (vv "y")
 >               : [])
 >             )
 >           )
@@ -646,9 +646,9 @@ given metacontext.
 
 >           -- test 51
 >         , ( gal "A" (_PI "X" BOOL (_PI "x" BOOL BOOL))
->           : gal "B" SET
->           : eq "p" SET (mv "B")
->                    SET (_PI "X" BOOL (_PI "x" BOOL (if'' SET (mv "A" $$ vv "X" $$ vv "x") BOOL BOOL)))
+>           : gal "B" TYPE
+>           : eq "p" TYPE (mv "B")
+>                    TYPE (_PI "X" BOOL (_PI "x" BOOL (if'' TYPE (mv "A" $$ vv "X" $$ vv "x") BOOL BOOL)))
 >           : [])
 
 >           -- test 52
@@ -658,30 +658,30 @@ given metacontext.
 
 >           -- test 53
 >         , ( gal "b" BOOL
->           : gal "X" (if'' SET (mv "b") BOOL (BOOL --> BOOL))
+>           : gal "X" (if'' TYPE (mv "b") BOOL (BOOL --> BOOL))
 >           : eq "p" (BOOL --> BOOL) (ll "Y" (vv "Y"))
->                    (if'' SET (mv "b") BOOL (BOOL --> BOOL)) (mv "X")
+>                    (if'' TYPE (mv "b") BOOL (BOOL --> BOOL)) (mv "X")
 >           : eq "q" BOOL (mv "b") BOOL FF
 >           : [])
 
 >           -- test 54: twins with matching spines
->         , ( gal "A" SET
+>         , ( gal "A" TYPE
 >           : gal "B" (BOOL --> mv "A" --> BOOL)
->           : gal "S" SET
+>           : gal "S" TYPE
 >           : gal "T" (BOOL --> mv "S" --> BOOL)
 >           : eq "p" (_SIG "x" (mv "A") BOOL --> mv "A")
 >                         (ll "x" (vv "x" %% Hd))
 >                     (_SIG "x" (mv "S") BOOL --> mv "S")
 >                         (ll "x" (vv "x" %% Hd))
->           : eq "q" SET (mv "A") SET (mv "S")
+>           : eq "q" TYPE (mv "A") TYPE (mv "S")
 >           : [])
 
 >           -- test 55
 >         , ( gal "a" BOOL
->           : gal "b" (if'' SET (mv "a") BOOL BOOL)
->           : gal "c" (if'' SET (mv "a") BOOL BOOL)
->           : eq "p" (if'' SET (mv "a") BOOL BOOL) (mv "b")
->                    (if'' SET (mv "a") BOOL BOOL) (mv "c")
+>           : gal "b" (if'' TYPE (mv "a") BOOL BOOL)
+>           : gal "c" (if'' TYPE (mv "a") BOOL BOOL)
+>           : eq "p" (if'' TYPE (mv "a") BOOL BOOL) (mv "b")
+>                    (if'' TYPE (mv "a") BOOL BOOL) (mv "c")
 >           : [])
 
 >           -- test 56: double meta
@@ -694,22 +694,22 @@ given metacontext.
 
 >           -- test 57: rigid-rigid mismatch disappears after eta (good order)
 >         , ( gal "a" BOOL
->           : eq "q" SET (if'' SET (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) SET (BOOL *: BOOL)
->           : boy "X" (if'' SET (mv "a") (BOOL *: BOOL) (BOOL *: BOOL))
+>           : eq "q" TYPE (if'' TYPE (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) TYPE (BOOL *: BOOL)
+>           : boy "X" (if'' TYPE (mv "a") (BOOL *: BOOL) (BOOL *: BOOL))
 >             ( gal "b" BOOL
 >             : gal "c" BOOL
 >             : eq "r" BOOL (mv "a") BOOL TT
->             : eq "p" (if'' SET (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) (vv "X") (BOOL *: BOOL) (PAIR (mv "b") (mv "c"))
+>             : eq "p" (if'' TYPE (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) (vv "X") (BOOL *: BOOL) (PAIR (mv "b") (mv "c"))
 >             : [])
 >           )
 
 >           -- test 58: rigid-rigid mismatch disappears after eta (bad order)
 >         , ( gal "a" BOOL
->           : eq "q" SET (if'' SET (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) SET (BOOL *: BOOL)
->           : boy "X" (if'' SET (mv "a") (BOOL *: BOOL) (BOOL *: BOOL))
+>           : eq "q" TYPE (if'' TYPE (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) TYPE (BOOL *: BOOL)
+>           : boy "X" (if'' TYPE (mv "a") (BOOL *: BOOL) (BOOL *: BOOL))
 >             ( gal "b" BOOL
 >             : gal "c" BOOL
->             : eq "p" (if'' SET (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) (vv "X") (BOOL *: BOOL) (PAIR (mv "b") (mv "c"))
+>             : eq "p" (if'' TYPE (mv "a") (BOOL *: BOOL) (BOOL *: BOOL)) (vv "X") (BOOL *: BOOL) (PAIR (mv "b") (mv "c"))
 >             : eq "r" BOOL (mv "a") BOOL TT
 >             : [])
 >           )
@@ -731,13 +731,13 @@ given metacontext.
 >           )
 
 >           -- test: dingo
->         , [ gal "X" (_PI "N" NAT (fold'' SET BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
+>         , [ gal "X" (_PI "N" NAT (fold'' TYPE BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
 >           , eq "p" BOOL (mv "X" $$$ [ZE, FF])
 >                    BOOL (mv "X" $$$ [ZE, TT])
 >           ]
 
 >           -- test: dingo
->         , [ gal "X" (_PI "N" NAT (fold'' SET BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
+>         , [ gal "X" (_PI "N" NAT (fold'' TYPE BOOL "IH" (vv "IH") (vv "N") --> BOOL)) 
 >           , eq "p" BOOL (mv "X" $$$ [ZE, FF])
 >                    BOOL (mv "X" $$$ [SU ZE, FF])
 >           ]
@@ -761,7 +761,7 @@ given metacontext.
 
 >           -- stuck 3: nonlinear
 >         , ( gal "B" (BOOL --> BOOL --> BOOL)
->           : gal "A" SET
+>           : gal "A" TYPE
 >           : boy "X" BOOL
 >             ( eq "p" (mv "A" --> BOOL) (ll "a" (mv "B" $$ vv "X" $$ vv "X"))
 >                      (mv "A" --> BOOL) (ll "a" (vv "X"))
@@ -769,7 +769,7 @@ given metacontext.
 >           )
 
 >           -- stuck 4: solution does not typecheck 
->         , ( gal "A" SET
+>         , ( gal "A" TYPE
 >           : gal "f" (mv "A" --> BOOL)
 >           : eq "p" (mv "A" --> BOOL) (mv "f")
 >                    (mv "A" --> mv "A") (ll "x" (vv "x"))
@@ -793,9 +793,9 @@ given metacontext.
 >           )
 
 >           -- stuck 7 (requires sigma-splitting of twins)
->         , ( gal "A" SET
+>         , ( gal "A" TYPE
 >           : gal "B" (BOOL --> mv "A" --> BOOL)
->           : gal "S" SET
+>           : gal "S" TYPE
 >           : gal "T" (BOOL --> mv "S" --> BOOL)
 >           : eq "p" (_SIG "x" (mv "A") BOOL --> BOOL)
 >                         (ll "x" (mv "B" $$ TT $$ (vv "x" %% Hd)))
@@ -804,23 +804,23 @@ given metacontext.
 >           : [])
 
 >           -- stuck 8: awkward occurrence
->         , ( gal "A" SET
+>         , ( gal "A" TYPE
 >           : gal "a" (mv "A")
 >           : gal "f" (mv "A" --> BOOL)
->           : eq "p" SET (mv "A") SET (if'' SET (mv "f" $$ mv "a") NAT BOOL --> BOOL)
+>           : eq "p" TYPE (mv "A") TYPE (if'' TYPE (mv "f" $$ mv "a") NAT BOOL --> BOOL)
 >           : [])
 
 >           -- stuck 9
 >         , ( gal "A" (BOOL --> BOOL)
 >           : gal "B" (BOOL --> BOOL)
->           : gal "a" (if'' SET (mv "A" $$ TT) NAT BOOL)
->           : gal "b" (if'' SET (mv "B" $$ TT) NAT BOOL)
->           : eq "p" (_SIG "x" BOOL (if'' SET (mv "B" $$ vv "x") NAT BOOL))
+>           : gal "a" (if'' TYPE (mv "A" $$ TT) NAT BOOL)
+>           : gal "b" (if'' TYPE (mv "B" $$ TT) NAT BOOL)
+>           : eq "p" (_SIG "x" BOOL (if'' TYPE (mv "B" $$ vv "x") NAT BOOL))
 >                        (PAIR TT (mv "b"))
->                    (if'' SET (mv "A" $$ TT) NAT BOOL)
+>                    (if'' TYPE (mv "A" $$ TT) NAT BOOL)
 >                        (mv "a")
->           : eq "q" SET (_SIG "x" BOOL (if'' SET (mv "B" $$ vv "x") NAT BOOL))
->                    SET (if'' SET (mv "A" $$ TT) NAT BOOL)
+>           : eq "q" TYPE (_SIG "x" BOOL (if'' TYPE (mv "B" $$ vv "x") NAT BOOL))
+>                    TYPE (if'' TYPE (mv "A" $$ TT) NAT BOOL)
 >           : [])
 
 >           -- stuck 10
@@ -834,19 +834,19 @@ given metacontext.
 
 >           -- stuck 11
 >         , ( gal "F" (BOOL --> BOOL)
->           : gal "A" (_PI "X" BOOL (if'' SET (mv "F" $$ vv "X") BOOL BOOL))
+>           : gal "A" (_PI "X" BOOL (if'' TYPE (mv "F" $$ vv "X") BOOL BOOL))
 >           : boy "X" BOOL
 >             ( boy "Y" BOOL
->               ( eq "p" (if'' SET (mv "F" $$ vv "X") BOOL BOOL) (mv "A" $$ vv "X")
->                        (if'' SET (mv "F" $$ vv "Y") BOOL BOOL) (mv "A" $$ vv "Y")
+>               ( eq "p" (if'' TYPE (mv "F" $$ vv "X") BOOL BOOL) (mv "A" $$ vv "X")
+>                        (if'' TYPE (mv "F" $$ vv "Y") BOOL BOOL) (mv "A" $$ vv "Y")
 >               : [])
 >             )
 >           )
 
 >           -- stuck 12
 >         , ( gal "B" (BOOL --> BOOL)
->           : gal "F" (if'' SET (mv "B" $$ TT) BOOL BOOL --> BOOL)
->           : eq "p" (if'' SET (mv "B" $$ TT) BOOL BOOL --> BOOL)
+>           : gal "F" (if'' TYPE (mv "B" $$ TT) BOOL BOOL --> BOOL)
+>           : eq "p" (if'' TYPE (mv "B" $$ TT) BOOL BOOL --> BOOL)
 >                        (ll "Y" (mv "F" $$ vv "Y"))
 >                    (BOOL --> BOOL) 
 >                        (ll "Y" (vv "Y"))
@@ -856,19 +856,19 @@ given metacontext.
 >         , ( gal "A" BOOL
 >           : gal "C" BOOL
 >           : gal "B" (BOOL --> BOOL)
->           : gal "F" (if'' SET (mv "B" $$ TT) BOOL BOOL --> BOOL)
->           : eq "p" (_PI "X" (if'' SET (mv "B" $$ TT) BOOL BOOL) (if'' SET (mv "F" $$ vv "X") BOOL BOOL --> BOOL))
+>           : gal "F" (if'' TYPE (mv "B" $$ TT) BOOL BOOL --> BOOL)
+>           : eq "p" (_PI "X" (if'' TYPE (mv "B" $$ TT) BOOL BOOL) (if'' TYPE (mv "F" $$ vv "X") BOOL BOOL --> BOOL))
 >                        (ll "X" (ll "x" (mv "A")))
->                    (_PI "X" BOOL (if'' SET (vv "X") BOOL BOOL --> BOOL))
+>                    (_PI "X" BOOL (if'' TYPE (vv "X") BOOL BOOL --> BOOL))
 >                        (ll "X" (ll "x" (mv "C")))
->           : eq "q" SET (_PI "X" (if'' SET (mv "B" $$ TT) BOOL BOOL) (if'' SET (mv "F" $$ vv "X") BOOL BOOL --> BOOL)) SET (_PI "X" BOOL (if'' SET (vv "X") BOOL BOOL --> BOOL))
+>           : eq "q" TYPE (_PI "X" (if'' TYPE (mv "B" $$ TT) BOOL BOOL) (if'' TYPE (mv "F" $$ vv "X") BOOL BOOL --> BOOL)) TYPE (_PI "X" BOOL (if'' TYPE (vv "X") BOOL BOOL --> BOOL))
 >           : [])
 
 >           -- test 25: solve with extensionality and refl
 >         , [ gal "A" BOOL
->           , eq "p" (if'' SET (mv "A") NAT BOOL --> BOOL) (ll "x" TT)
+>           , eq "p" (if'' TYPE (mv "A") NAT BOOL --> BOOL) (ll "x" TT)
 >                    (NAT --> BOOL) (ll "x" TT)
->           , eq "q" SET (if'' SET (mv "A") NAT BOOL) SET NAT
+>           , eq "q" TYPE (if'' TYPE (mv "A") NAT BOOL) TYPE NAT
 >           ]
 
 >         ]
@@ -914,11 +914,11 @@ given metacontext.
 >           : [])
 
 >           -- fail 6
->         , ( eq "p" SET BOOL SET (BOOL --> BOOL)
+>         , ( eq "p" TYPE BOOL TYPE (BOOL --> BOOL)
 >           : [])
 
 >           -- fail 7
->         , ( gal "A" SET
+>         , ( gal "A" TYPE
 >           : boy "x" (mv "A")
 >             ( boy "y" (mv "A")
 >               ( eq "p" (mv "A") (vv "x") (mv "A") (vv "y")
@@ -927,7 +927,7 @@ given metacontext.
 >           )
 
 >           -- fail 8
->         , ( gal "A" SET
+>         , ( gal "A" TYPE
 >           : boy "x" (mv "A")
 >             ( eq "p" (mv "A") (vv "x") BOOL TT
 >             : [])
