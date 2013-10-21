@@ -43,10 +43,19 @@ binding) so as to factor out common patterns in the typechecker.
 >     Pi, Sig  :: Type -> Bind Nom Type -> Tm
 
 > type Nom    = Name Tm
-> data Can t  = Type | Pair t t | Bool | True' | False' | Nat | Ze | Su t
+> data Can t  = Type
+>             | Pair t t
+>             | Bool | True' | False'
+>             | Nat | Ze | Su t
+>             | Unit | Tt
 > data Head   = V Nom Twin | M Nom
 > data Twin   = Only | TwinL | TwinR
-> data Elim   = A Tm | Hd | Tl | If (Bind Nom Type) Tm Tm | Fold (Bind Nom Type) Tm (Bind Nom (Bind Nom Tm))
+> data Elim   = A Tm
+>             | Hd | Tl
+>             | If (Bind Nom Type) Tm Tm
+>             | Fold (Bind Nom Type) Tm (Bind Nom (Bind Nom Tm))
+>             -- No trivial unit eliminator: we don't have one in Spire.
+>
 > type Type   = Tm
 
 
@@ -144,6 +153,8 @@ However, the action on morphisms can be defined thus:
 >     pretty Bool        = return $ text "Bool"
 >     pretty True'       = return $ text "True"
 >     pretty False'      = return $ text "False"
+>     pretty Unit        = return $ text "Unit"
+>     pretty Tt          = return $ text "Tt"
 >     pretty Nat         = return $ text "Nat"
 >     pretty Ze          = prettyNat 0 ZE
 >     pretty (Su n)      = prettyNat 1 n
@@ -226,6 +237,8 @@ patterns) as well as \scare{on the right} (in expressions).
 > pattern NAT           = C Nat
 > pattern ZE            = C Ze
 > pattern SU n          = C (Su n)
+> pattern UNIT          = C Unit
+> pattern TT            = C Tt
 
 
 %if False

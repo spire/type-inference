@@ -456,7 +456,9 @@ Subsection~\longref{subsec:miller:spec:metasimp}.
 >                                           hole _Phi (_Pi y _A  (_Pi z _B (inst _T s))) $ \ w ->
 >                                           define _Phi alpha (Pi _S _T) (lam x (w $$ u $$ v)) >>
 >                                           return True)      
->             
+>
+> lower _Phi alpha UNIT = define _Phi alpha UNIT TT >> return True
+>
 > lower _Phi alpha _T = return False
 
 

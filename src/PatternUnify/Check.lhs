@@ -76,6 +76,9 @@ However, it can look up metavariable types in the context.
 > equalise NAT  ZE      ZE      = return ZE
 > equalise NAT  (SU m)  (SU n)  = SU <$> equalise NAT m n
 
+> equalise TYPE UNIT    UNIT    = return UNIT
+> equalise UNIT TT      TT      = return TT
+
 > equalise _U s t = fail $ "Type " ++ pp _U ++ " does not make "
 >                          ++ pp s ++ " equal to " ++ pp t
 
