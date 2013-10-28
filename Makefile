@@ -7,8 +7,8 @@ debug: cabal-install-debug
 
 test:
 	mkdir -p tmp
-	cd src && runhaskell PatternUnify/Test.lhs > ../tmp/test.out
-	if grep FAIL tmp/test.out; then exit 1; else exit 0; fi
+	cd src && runhaskell PatternUnify/Test.lhs 2>&1 | tee ../tmp/test.out
+	! grep FAIL tmp/test.out
 
 ######################################################################
 
