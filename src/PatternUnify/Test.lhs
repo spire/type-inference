@@ -62,7 +62,7 @@ with s2n (which generates names with index 0):
 >             do initialise
 >                normalize
 >                ambulando []
->                validate
+>                validate ()
 >                checkHolds (probs ezs)
 >   where
 >     probs = foldMap foo
@@ -152,13 +152,143 @@ given metacontext.
 
 
 
+Testing:
 
+    PatternUnify.Test.unify (tests !! 1)
 
 > tests, stucks, fails :: [[Entry]]
 > tests = [ 
 
+-- >           ( boy "T" TYPE
+-- >             [ gal "P" (vv "T" --> TYPE)
+-- >             , gal "A" (vv "T" --> TYPE)
+-- >             , gal "B" (_PI "x" (vv "T") ((mv "A" $$ vv "x") --> TYPE))
+-- >             ] ++
+-- >             ( boy "x" (vv "T")
+-- >               [ eq "p" TYPE (mv "P" $$ vv "x")
+-- >                        TYPE (_PI "y" (mv "A" $$ vv "x") (mv "B" $$$ [vv "x" , vv "y"]))
+-- >               ]
+-- >             )
+-- >           )
+
+>           -- A 'forcePi' problem with no term variables:
+>           --
+>           --   ?P == Pi y:?A. ?B y
+>           [ gal "P" TYPE
+>           , gal "A" TYPE
+>           , gal "B" (mv "A" --> TYPE)
+>           ] ++
+>           [ eq "p" TYPE (mv "P")
+>                    TYPE (_PI "y" (mv "A") (mv "B" $$$ [vv "y"]))
+>           ]
+
+unify': before: [
+?12 : Type := Type
+,?13 : Type -> Type
+,?9 : Type := Pi (_forcePi : Type) (??13 _forcePi)
+,?8 : Pi (_forcePi : Type) (??13 _forcePi)
+,?18 : Type -> Type
+,?19 : Pi (_ : Type) (??18 _ -> Type)
+
+,?Active (_ : Type) -> (x : _) -> (??13 _ : Type) == (Pi (_forcePi : ??18 _) (??19 _ _forcePi) : Type)]
+
+?13 : Type -> Type
+?18 : Type -> Type
+?19 : (T : Type) -> (?18 T) -> Type
+equation:
+  forall T : Type. forall (x : T). ?13 T == (x : ?18 T) -> (?19 T x)
+
+>         , [ gal "P" (TYPE --> TYPE)
+>           , gal "A" (TYPE --> TYPE)
+>           , gal "B" (_PI "T" TYPE ((mv "A" $$ vv "T") --> TYPE))
+>           ] ++
+>           boy "T" TYPE ( boy "x" (vv "T") [
+>             eq "p" TYPE (mv "P" $$ vv "T")
+>                    TYPE (_PI "y" (mv "A" $$ vv "T") (mv "B" $$$ [vv "T" , vv "y"]))])
+
+
+>           -- A 'forcePi' problem with term variables:
+>           --
+>           --   T : Type
+>           --   x : T
+>           --   |-
+>           --   ?P x == Pi y:?A x. ?B x y
+>         , ( boy "T" TYPE
+>             [ gal "P" TYPE
+>             , gal "A" TYPE
+>             , gal "B" (mv "A" --> TYPE)
+>             ] ++
+>             ( boy "x" (vv "T")
+>               [ eq "p" TYPE (mv "P" $$ vv "x")
+>                        TYPE (_PI "y" (mv "A" $$ vv "x") (mv "B" $$$ [vv "x" , vv "y"]))
+>               ]
+>             )
+>           )
+
+XXX: broken example: was trying to see if fixing the domain of the RHS
+helped, since I think I can actually do that, following Matita.
+
+Use e.g.
+
+    PatternUnify.Test.unify (tests !! 2)
+
+to test the tests in the GHCI prompt. Use e.g.
+
+    pp (tests !! 2)
+
+to see what you're testing.
+
+  P : Type -> Type,
+  B : Type -> Bool -> Type,
+  ?Active (x : T) ->
+    (?P x : Type) == (Pi (y : Bool) (?B x y) : Type)
+
+>         , ( boy "T" TYPE
+>             [ gal "P" TYPE
+>             , gal "B" (BOOL --> TYPE)
+>             ] ++
+>             ( boy "x" (vv "T")
+>               [ eq "p" TYPE (mv "P" $$ vv "x")
+>                        TYPE (_PI "y" BOOL (mv "B" $$$ [vv "x" , vv "y"]))
+>               ]
+>             )
+>           )
+
+This seems to be the reflexive equality which fails as part of the
+previous test, but here it succeeds ???!!! NO!!! The one above is
+ill-typed!!! See below for another try.
+
+  B : Type -> Bool -> Type,
+  ?Active (x : Type) ->
+    (Pi (y : Bool) (?B x y) : Type) == (Pi (y : Bool) (?B x y) : Type)
+
+>         , ( boy "x" TYPE
+>             [ gal "B" (BOOL --> TYPE)
+>             , eq "p" TYPE (_PI "y" BOOL (mv "B" $$ vv "y"))
+>                      TYPE (_PI "y" BOOL (mv "B" $$ vv "y"))
+>             ]
+>           )
+
+>         , [ gal "P" (TYPE --> TYPE)
+>           , gal "B" (TYPE --> BOOL --> TYPE)
+>           ] ++
+>           ( boy "T" TYPE
+>             ( boy "x" (vv "T")
+>               [ eq "p" TYPE (mv "P" $$ vv "T")
+>                        TYPE (_PI "y" BOOL (mv "B" $$$ [vv "T" , vv "y"]))
+>               ]
+>             )
+>           )
+
+-- >         , ( boy "x" BOOL
+-- >             [ gal "A" (TYPE --> TYPE)
+-- >             , eq "p" TYPE (mv "A" --> mv "A")
+-- >                      TYPE (mv "A" --> mv "A")
+-- >             ]
+-- >           )
+
 >           -- test 0: solve B with A
->           ( gal "A" TYPE
+>         , ( gal "A" TYPE
 >           : gal "B" TYPE
 >           : eq "p" TYPE (mv "A") TYPE (mv "B")
 >           : [])

@@ -35,6 +35,8 @@
 >                 eqnProb, allProb, allTwinsProb,
 >                 lookupVar, pushR, pushL, pushLs, inScope, popL, popR, goLeft, sym)
 
+> import Debug.Trace
+
 %endif
 
 With the preliminaries out of the way, I can now present the pattern
@@ -142,7 +144,7 @@ Figure~\longref{fig:miller:solve}, as described in
 Subsection~\longref{subsec:miller:spec:invert}.
 
 > flexTerm ::  [Entry] -> Equation -> Contextual ()
-> flexTerm _Xi q@(EQNO (N (M alpha) _) _) = do
+> flexTerm _Xi q@(EQNO (N (M alpha) _) _) = msg `trace` do
 >   _Gam <- fmap snd <$> ask
 >   popL >>= \ e -> case e of
 >     E beta (_T, HOLE)
@@ -159,6 +161,9 @@ Subsection~\longref{subsec:miller:spec:invert}.
 >       "of the meta context are expected to be substituted in the right of the meta context."
 >     _                                            -> do  pushR (Right e)
 >                                                         flexTerm _Xi q
+
+>   where
+>   msg = "flexTerm: (" ++ pp _Xi ++ ") (" ++ pp q ++ ")\n"
 
 %if False
 
@@ -212,11 +217,17 @@ seek a solution to the equation. If it finds one, it defines the
 metavariable.
 
 > tryInvert ::  Equation -> Type -> Contextual Bool
-> tryInvert q@(EQNO (N (M alpha) e) s) _T = invert alpha _T e s >>= \ m -> case m of
->         Nothing  ->  return False
->         Just v   ->  do  active (Unify q)
+> tryInvert q@(EQNO (N (M alpha) e) s) _T = msg `trace` invert alpha _T e s >>= \ m -> case m of
+>         Nothing  ->  fail `trace` return False
+>         Just v   ->  success v `trace`
+>                      do  active (Unify q)
 >                          define B0 alpha _T v
 >                          return True
+
+>   where
+>   msg = "tryInvert: (" ++ pp q ++ ") (" ++ pp _T ++ ")\n"
+>   success v = "tryInvert: success! (" ++ pp v ++ ")\n"
+>   fail = "tryInvert: fail!"
 
 %if False
 
@@ -523,21 +534,23 @@ simplification steps \eqref{eqn:miller:decompose:fun} and
 Figure~\longref{fig:miller:prob-decompose}, or invoking an auxiliary
 function in order to make progress.
 
-> unify :: Equation -> Contextual ()
+> unify , unify' :: Equation -> Contextual ()
 >
-> unify (EQN (Pi _A _B) f (Pi _S _T) g) = do
+> unify e = ("unify: (" ++ pp e ++ ")\n") `trace` unify' e
+>
+> unify' (EQN (Pi _A _B) f (Pi _S _T) g) = do
 >     x <- fresh (s2n "x")
 >     active $ allTwinsProb x _A _S (eqnProb (inst _B (twinL x)) (f $$ twinL x) (inst _T (twinR x)) (g $$ twinR x))
-> unify (EQN (Sig _A _B) t (Sig _C _D) w) = do
+> unify' (EQN (Sig _A _B) t (Sig _C _D) w) = do
 >     active $ eqnProb _A (hd t) _C (hd w)
 >     active $ eqnProb (inst _B (hd t)) (tl t) (inst _D (hd w)) (tl w)
 >
-> unify q@(EQNO (N (M alpha) e) (N (M beta) e'))
+> unify' q@(EQNO (N (M alpha) e) (N (M beta) e'))
 >     | alpha == beta =  tryPrune q <|| tryPrune (sym q) <|| flexFlexSame q
-> unify q@(EQNO (N (M alpha) e) (N (M beta) e'))  = tryPrune q <|| tryPrune (sym q) <|| flexFlex [] q
-> unify q@(EQNO (N (M alpha) e) t)                = tryPrune q <|| flexTerm [] q
-> unify q@(EQNO t (N (M alpha) e))                = tryPrune (sym q) <|| flexTerm [] (sym q)
-> unify q                                         = rigidRigid q
+> unify' q@(EQNO (N (M alpha) e) (N (M beta) e'))  = tryPrune q <|| tryPrune (sym q) <|| flexFlex [] q
+> unify' q@(EQNO (N (M alpha) e) t)                = tryPrune q <|| flexTerm [] q
+> unify' q@(EQNO t (N (M alpha) e))                = tryPrune (sym q) <|| flexTerm [] (sym q)
+> unify' q                                         = rigidRigid q
 
 A rigid-rigid equation (between two non-metavariable terms) can either
 be decomposed into simpler equations or it is impossible to solve.

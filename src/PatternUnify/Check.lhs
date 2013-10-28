@@ -23,6 +23,8 @@
 > import PatternUnify.Tm
 > import PatternUnify.Context
 
+> import Debug.Trace
+
 %endif
 
 Here I give a typechecker and definitional equality test for the type
@@ -48,14 +50,18 @@ However, it can look up metavariable types in the context.
 > equalise TYPE  BOOL  BOOL  = return BOOL
 > equalise BOOL  TRUE  TRUE  = return TRUE
 > equalise BOOL  FALSE FALSE = return FALSE
-> equalise TYPE   (Pi _A _B) (Pi _S _T) = do
->     _U <- equalise TYPE _A _S
->     Pi _U <$>   bindsInScope _U _B _T
->                    (\ x _B' _T' -> equalise TYPE _B' _T')
+> equalise TYPE  t1@(Pi _A _B) t2@(Pi _S _T) = ("equalise(TYPE): (" ++ pp t1 ++ ") (RAW " ++ show t1 ++ ") (" ++ pp t2 ++ ")") `trace`
+>     do
+>     _U <-  equalise TYPE _A _S
+>     ("domain: (" ++ pp _A ++ ") (" ++ pp _S ++ ") = " ++ pp _U) `trace`
+>       Pi _U <$>   bindsInScope _U _B _T
+>                    (\ x _B' _T' -> do _V <- equalise TYPE _B' _T'
+>                                       ("range: (" ++ pp _B' ++ ") (" ++ pp _T' ++ ") = " ++ pp _V) `trace` return _V)
 > -- Eta expansion of neutrals
-> equalise (Pi _U _V) f g =
+> equalise t@(Pi _U _V) f g = ("equalise(Pi): (" ++ pp t ++ ") (RAW: " ++ show t ++ ") (" ++ pp f ++ ") (RAW " ++ show f ++ ") (" ++ pp g ++ ")") `trace` (
 >     L <$>  bindInScope _U _V
 >                (\ x _V' -> equalise _V' (f $$ var x) (g $$ var x))
+>    )
 > equalise TYPE (Sig _A _B) (Sig _S _T) = do
 >     _U <- equalise TYPE _A _S
 >     Sig _U <$>  bindsInScope _U _B _T
@@ -79,8 +85,10 @@ However, it can look up metavariable types in the context.
 > equalise TYPE UNIT    UNIT    = return UNIT
 > equalise UNIT TT      TT      = return TT
 
-> equalise _U s t = fail $ "Type " ++ pp _U ++ " does not make "
->                          ++ pp s ++ " equal to " ++ pp t
+> equalise _U s t = let msg = "Type " ++ pp _U ++ " does not make "
+>                             ++ pp s ++ " equal to " ++ pp t
+>                   in msg `trace` fail msg
+
 
 %endif
 
@@ -161,19 +169,27 @@ equality, it is easy to define a typechecking function as well.
 
 > equal :: Type -> Tm -> Tm -> Contextual Bool
 > equal _T s t =  (equalise _T s t >> return True) <|> (return False)
+> -- equal _T s t =  optional (equalise _T s t) >>=
+> --                   maybe (return False)
 >
 > typecheck :: Type -> Tm -> Contextual Bool
-> typecheck _T t = equal _T t t
+> typecheck _T t = ("typecheck: (" ++ pp _T ++ ") (" ++ pp t ++ ")\n") `trace` do
+>   b <- equal _T t t
+>   let msg = if b then "does type check!" else "does *not* type check!"
+>   ("typecheck: (" ++ pp _T ++ ") (" ++ pp t ++ ") " ++ msg ++ "\n") `trace` return b
 
 
 Finally, a convenience function that tests if a heterogeneous equation
 is reflexive, by checking that the types are equal and the terms are
 equal.
 
-> isReflexive :: Equation -> Contextual Bool
-> isReflexive (EQN _S s _T t) =  optional (equalise TYPE _S _T) >>=
->                                    maybe (return False) (\ _U -> equal _U s t)
+> isReflexive , isReflexive' :: Equation -> Contextual Bool
+> isReflexive' (EQN _S s _T t) =  (optional (equalise TYPE _S _T) >>=
+>                                    maybe (return False) (\ _U -> equal _U s t))
 
+> isReflexive e = do b <- isReflexive' e
+>                    let msg = if b then "reflexive!" else "*not* reflexive!"
+>                    ("isReflexive: (" ++ pp e ++ ") is " ++ msg) `trace` return b
 
 %if False
 
@@ -184,7 +200,7 @@ equal.
 >                           inScope x p (f x b')
 
 > check :: Type -> Tm -> Contextual ()
-> check _T t = equalise _T t t >> return ()
+> check _T t = ("check: (" ++ pp _T ++ ") (" ++ pp t ++ ")") `trace` equalise _T t t >> return ()
 
 > checkProb :: Problem -> Contextual ()
 > checkProb (Unify (EQN _S s _T t)) = do
@@ -199,8 +215,8 @@ equal.
 > checkParam (Twins _S _T)  = check TYPE _S >> check TYPE _T
 
 
-> validate :: Contextual ()
-> validate = local (const B0) $ do
+> validate :: () -> Contextual ()
+> validate () = "validate: " `trace` local (const B0) $ do
 >     _Del' <- getR
 >     unless (null _Del') $ error "validate: not at far right"
 >     _Del <- getL
@@ -213,7 +229,8 @@ equal.
 >     validateCx (_Del :< E _ (_T, HOLE))      = do  putL _Del
 >                                                    check TYPE _T
 >                                                    validateCx _Del
->     validateCx (_Del :< E _ (_T, DEFN v))  = do  putL _Del
+>     validateCx (_Del :< d@(E _ (_T, DEFN v)))  = ("validateCtx: (" ++ pp d ++ ")") `trace`
+>                                              do  putL _Del
 >                                                  check TYPE _T
 >                                                  check _T v
 >                                                  validateCx _Del
