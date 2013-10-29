@@ -18,7 +18,7 @@
 > import Data.Traversable (traverse)
 
 > import Common.BwdFwd
-> import Common.Names
+> import Common.Names hiding (join)
 > import Common.PrettyPrint
 > import PatternUnify.Tm
 > import PatternUnify.Context
@@ -55,15 +55,15 @@ However, it can look up metavariable types in the context.
 > -- Eta expansion of neutrals
 > equalise (Pi _U _V) f g =
 >     L <$>  bindInScope _U _V
->                (\ x _V' -> equalise _V' (f $$ var x) (g $$ var x))
+>                (\ x _V' -> join $ equalise _V' <$> (f $$ var x) <*> (g $$ var x))
 > equalise TYPE (Sig _A _B) (Sig _S _T) = do
 >     _U <- equalise TYPE _A _S
 >     Sig _U <$>  bindsInScope _U _B _T
 >                    (\ x _B' _T' -> equalise TYPE _B' _T')
 > -- Eta expansion of neutrals
 > equalise (Sig _U _V) s t = do
->     u0 <- equalise _U (hd s) (hd t)
->     u1 <- equalise (inst _V u0) (tl s) (tl t)
+>     u0 <- join $ equalise _U <$> hd s <*> hd t
+>     u1 <- join $ equalise <$> inst _V u0 <*> tl s <*> tl t
 >     return (PAIR u0 u1)
 > equalise _U (N h e) (N h' e') = do
 >     (h'', e'', _V) <- equaliseN h e h' e'
@@ -98,27 +98,29 @@ and $[[T]]$ are the results.
 > equaliseN h (e :< A s)  h' (e' :< A t)  = do
 >     (h'', e'', Pi _U _V)  <- equaliseN h e h' e'
 >     u                     <- equalise _U s t
->     return (h'', e'' :< A u, inst _V u)
+>     (h'', e'' :< A u, ) <$> inst _V u
 > equaliseN h (e :< Hd)   h' (e' :< Hd)   = do
 >     (h'', e'', Sig _U _V) <- equaliseN h e h' e'
 >     return (h'', e'' :< Hd, _U)
 > equaliseN h (e :< Tl)   h' (e' :< Tl)   = do
 >     (h'', e'', Sig _U _V) <- equaliseN h e h' e'
->     return (h'', e'' :< Tl, inst _V (N h'' (e'' :< Hd)))
+>     (h'', e'' :< Tl, ) <$> inst _V (N h'' (e'' :< Hd))
 > equaliseN h (e :< If _T u v) h' (e' :< If _T' u' v') = do
 >     (h'', e'', BOOL)  <- equaliseN h e h' e'
 >     _U''              <- bindsInScope BOOL _T _T' (\ x _U _U' -> equalise TYPE _U _U')
->     u''               <- equalise (inst _U'' TRUE) u u'
->     v''               <- equalise (inst _U'' FALSE) v v'
->     return (h'', e'' :< If _U'' u'' v'', inst _U'' (N h'' e''))
+>     u''               <- join $ equalise <$> inst _U'' TRUE <*> pure u <*> pure u'
+>     v''               <- join $ equalise <$> inst _U'' FALSE <*> pure v <*> pure v'
+>     (h'', e'' :< If _U'' u'' v'', ) <$> inst _U'' (N h'' e'')
 > equaliseN h1 (e1 :< Fold _P1 cz1 cs1) h2 (e2 :< Fold _P2 cz2 cs2) = do
 >     (h, e, NAT)  <- equaliseN h1 e1 h2 e2
 >     _P            <- bindsInScope NAT _P1 _P2 (\ x _P1' _P2' -> equalise TYPE _P1' _P2')
->     cz            <- equalise (inst _P ZE) cz1 cz2
->     cs            <- bindsInScope NAT cs1 cs2 $ \ x cs1' cs2' -> 
->                        bindsInScope (inst _P (var x)) cs1' cs2' $ \ ih cs1'' cs2'' ->
->                           equalise (inst _P (SU (var x))) cs1'' cs2''
->     return (h, e :< Fold _P cz cs , inst _P (N h e))
+>     cz            <- join $ equalise <$> inst _P ZE <*> pure cz1 <*> pure cz2
+>     cs            <- bindsInScope NAT cs1 cs2 $ \ x cs1' cs2' -> do
+>                        _P' <- inst _P (var x)
+>                        bindsInScope _P' cs1' cs2' $ \ ih cs1'' cs2'' -> do
+>                          _P'' <- inst _P (SU (var x))
+>                          equalise _P'' cs1'' cs2''
+>     (h, e :< Fold _P cz cs , ) <$> inst _P (N h e)
 
 %if False
 
@@ -245,7 +247,8 @@ equal.
 >         then return ()
 >         else do
 >             theta <- mcxToSubs <$> getL
->             traverse checkHold $ substs theta ps
+>             ps' <- substsM theta ps
+>             traverse checkHold ps'
 >             return ()
 >   where
 >     checkHold (All (P _T) b) = bindInScope_ (P _T) b (const checkHold)

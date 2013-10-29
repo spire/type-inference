@@ -20,7 +20,7 @@
 > import Data.Traversable (Traversable, traverse)
 
 > import Common.BwdFwd
-> import Common.Names
+> import Common.Names hiding (Subst(..))
 > import Common.PrettyPrint hiding (first)
 > import PatternUnify.Tm
 
@@ -69,12 +69,12 @@ the cursor may include substitutions, being propagated lazily.
 > deriving instance Show Status
 
 > instance Alpha Status
-> instance Subst a Status
+> instance Monad m => SubstM m a Status
 
 > deriving instance Show Param
 
 > instance Alpha Param
-> instance Subst Tm Param
+> instance (Fresh m , Applicative m) => SubstM m Tm Param
 
 > instance Occurs Param where
 >     free l (P _T)          = free l _T
@@ -89,7 +89,7 @@ the cursor may include substitutions, being propagated lazily.
 > deriving instance Show v => Show (Decl v)
 
 > instance Alpha v => Alpha (Decl v)
-> instance Subst t v => Subst t (Decl v)
+> instance SubstM m t v => SubstM m t (Decl v)
 
 > instance Pretty v => Pretty (Decl v) where
 >     pretty HOLE     = return $ text "HOLE"
@@ -104,7 +104,7 @@ the cursor may include substitutions, being propagated lazily.
 > deriving instance Show Entry
 
 > instance Alpha Entry
-> instance Subst Tm Entry
+> instance (Fresh m , Applicative m) => SubstM m Tm Entry
 
 > instance Pretty Entry where
 >     pretty (E alpha (_T, HOLE))    = (| (between colon) (pretty alpha) (pretty _T) |)
@@ -120,7 +120,7 @@ the cursor may include substitutions, being propagated lazily.
 > pattern EQNO s t = EQN boring s boringer t
 
 > instance Alpha Equation
-> instance Subst Tm Equation
+> instance (Fresh m , Applicative m) => SubstM m Tm Equation
 
 > instance Occurs Equation where
 >     free l (EQN _S s _T t) = free l (_S, s, _T, t)
@@ -141,10 +141,7 @@ the cursor may include substitutions, being propagated lazily.
 >     free l (All e b)  = free l (e, b)
 
 
-> instance Subst Tm Problem where
->     substs s (Unify q)  = Unify (substs s q)
->     substs s (All e b)  = All (substs s e) (bind x (substs s p))
->                               where (x, p) = unsafeUnbind b
+> instance (Fresh m , Applicative m) => SubstM m Tm Problem
 
 > instance Pretty Problem where
 >     pretty (Unify q) = pretty q
