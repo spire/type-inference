@@ -44,7 +44,7 @@ lib/she.git:
 	git clone git@github.com:ntc2/she.git lib/she.git
 
 lib-she: lib/she.git
-	cd lib/she.git \
+	-cd lib/she.git \
 	&& cabal install
 
 ######################################################################

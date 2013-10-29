@@ -9,3 +9,4 @@ src/prof-dist
 *.hi
 *.o
 *.bak
+lib
