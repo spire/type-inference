@@ -1,4 +1,5 @@
 > module Common.Names (module Unbound.LocallyNameless,
+>                      module Unbound.LocallyNameless.SubstM,
 >                      unsafeUnbind, GenBind(..), unions, fromList,
 >                      vars, notSubsetOf, o) where
 
@@ -10,6 +11,7 @@
 > import Unbound.LocallyNameless hiding (empty, fv, Float, rUnit, toList)
 > import Unbound.LocallyNameless.Ops (unsafeUnbind)
 > import Unbound.LocallyNameless.Types (GenBind(..))
+> import Unbound.LocallyNameless.SubstM
 > import Unbound.Util (unions, fromList)
 
 > vars :: (Ord a, Collection c, Foldable f) => f (a, b) -> c a

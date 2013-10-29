@@ -27,6 +27,7 @@ Library
   Build-depends:     base == 4.*,
                           RepLib == 0.5.*,
                           unbound == 0.4.*,
+                          unbound-substm,
 --                          signed-multiset == 0.3.*,
                           containers >= 0.3 && < 0.6,
                           mtl == 2.*,

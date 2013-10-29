@@ -119,14 +119,17 @@ However, the action on morphisms can be defined thus:
 > instance Alpha Head
 > instance Alpha Elim
 
-> instance Subst Tm Tm where
->     substs     = eval
->     subst n u  = substs [(n, u)]
+Substitution.
 
-> instance Subst Tm t => Subst Tm (Can t)
-> instance Subst Tm Twin
-> instance Subst Tm Head 
-> instance Subst Tm Elim
+> instance (Fresh m , Applicative m) => SubstM m Tm Tm where
+>   substsM = eval
+>   substM n u = substsM [(n, u)]
+
+> instance SubstM m Tm t => SubstM m Tm (Can t)
+> instance SubstM m Tm t => SubstM m Tm (Bwd t)
+> instance Monad m => SubstM m Tm Twin
+> instance Monad m => SubstM m Tm Head
+> instance (Fresh m , Applicative m) => SubstM m Tm Elim
 
 > instance Pretty Tm where
 >     pretty (Pi _S b) =
@@ -393,8 +396,8 @@ metasubstitution.
 
 > type Subs = [(Nom, Tm)]
 
-> (*%*) :: Subs -> Subs -> Subs
-> delta' *%* delta = unionBy ((==) `on` fst) delta' (substs delta' delta)
+> (*%*) :: (Fresh m , Applicative m) => Subs -> Subs -> m Subs
+> delta' *%* delta = unionBy ((==) `on` fst) delta' <$> substsM delta' delta
 
 The evaluator is an implementation of hereditary substitution defined
 in Figure~\longref{fig:miller:heresubst}: it proceeds structurally
