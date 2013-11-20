@@ -81,17 +81,17 @@ However, the action on morphisms can be defined thus:
 >   (z , cs'') <- unbind cs'
 >   Fold <$> (bind x <$> f _P') <*> f cz <*> (bind y . bind z <$> f cs'')
 >
-> foldMapElim :: (Monoid m , Fresh f , Applicative f) => (Tm -> m) -> Elim -> f m
-> foldMapElim f  (A a)        = return $ f a
+> foldMapElim :: (Monoid mon , Fresh m , Applicative m) => (Tm -> m mon) -> Elim -> m mon
+> foldMapElim f  (A a)        = f a
 > foldMapElim _  Hd           = return $ mempty
 > foldMapElim _  Tl           = return $ mempty
 > foldMapElim f  (If _T s t)  = do
 >   (_ , _T') <- unbind _T
->   return $ f _T' <.> f s <.> f t
+>   mconcat <$> mapM f [ _T' , s , t ]
 > foldMapElim f  (Fold _P cz cs) = do
 >   (_ , _P') <- unbind _P
 >   (_ , cs'') <- unbind =<< (snd <$> unbind cs)
->   return $ f _P' <.> f cz <.> f cs''
+>   mconcat <$> mapM f [ _P' , cz , cs'' ]
 
 
 %if False
