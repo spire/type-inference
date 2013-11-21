@@ -52,7 +52,7 @@ constructing examples.  The user promises to avoid capture ...
 > ($$$) = foldl ($$)
 
 
-> data TestType = Succeed | Stuck | Fail
+> data TestType = Succeed | Stuck | Fail deriving Show
 
 
 Allocate a fresh name so the counter starts from 1, to avoid clashing
@@ -113,9 +113,9 @@ Side effect: meta context moves from left to right.
 The |test| function executes the constraint solving algorithm on the
 given metacontext.
 
-> test :: TestType -> [Entry] -> IO ()
-> test tt ezs = do
->     putStrLn $ "\n\nInitial context:\n" ++ pp ezs
+> test :: TestType -> Int -> [Entry] -> IO ()
+> test tt n ezs = do
+>     putStrLn $ "\n\n(" ++ show tt ++ " " ++ show n ++ ") Initial context:\n" ++ pp ezs
 >     let r = PatternUnify.Test.unify ezs
 >     case (r, tt) of
 >         (Left err,  Fail)  -> putStrLn $ "OKAY: expected failure:\n" ++ err
@@ -128,11 +128,13 @@ given metacontext.
 >   where
 >     showX cxL = "Final context:\n" ++ pp cxL
 >     succeeded cxL = not (anyBlocked cxL)
-
+>
+> mapTest :: TestType -> [[Entry]] -> IO ()
+> mapTest tt es = mapM_ (uncurry $ test tt) $ zip [0..] es
 > runTestSolved, runTestStuck, runTestFailed, patternUnify :: IO ()
-> runTestSolved = mapM_ (test Succeed) tests
-> runTestStuck  = mapM_ (test Stuck) stucks
-> runTestFailed = mapM_ (test Fail) fails
+> runTestSolved = mapTest Succeed tests
+> runTestStuck  = mapTest Stuck   stucks
+> runTestFailed = mapTest Fail    fails
 > patternUnify = runTestSolved >> runTestStuck >> runTestFailed
 
 > lifted :: Nom -> Type -> [Entry] -> [Entry]
