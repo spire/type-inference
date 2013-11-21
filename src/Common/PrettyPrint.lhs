@@ -1,7 +1,7 @@
 > {-# LANGUAGE FlexibleContexts #-}
 
 > module Common.PrettyPrint (Size(..), prettyAt, prettyLow, prettyHigh,
->                     wrapDoc, runPretty, pp, ppWith, lubpretty, Pretty(..),
+>                     wrapDoc, runPretty, pp, ppp, ppWith, lubpretty, Pretty(..),
 >                     between, commaSep, semiSep, angles, prettyVert,
 >                     module Text.PrettyPrint.HughesPJ) where
 
@@ -37,8 +37,9 @@
 > runPretty :: ReaderT Size LFreshM a -> a
 > runPretty = runLFreshM . flip runReaderT maxBound
 
-> pp :: Pretty a => a -> String
+> pp , ppp :: Pretty a => a -> String
 > pp = render . runPretty . pretty
+> ppp x = "(" ++ pp x ++ ")"
 
 > ppWith :: (a -> ReaderT Size LFreshM Doc) -> a -> String
 > ppWith f = render . runPretty . f
