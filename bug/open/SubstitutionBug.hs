@@ -10,13 +10,15 @@
 --
 -- Run with 'runhaskell SubstitutionBug.hs'.
 
+import Control.Monad
+import Control.Applicative
+import Unbound.LocallyNameless
+
 import PatternUnify.Tm
 import PatternUnify.Context
 import Common.PrettyPrint
 import Common.Names
 import Common.BwdFwd
-import Control.Monad
-import Unbound.LocallyNameless
 
 data D1 = D1 (Bind Nom Tm) deriving Show
 data D2 = D2 (Bind Nom Tm) deriving Show
@@ -30,12 +32,12 @@ instance Pretty D2 where
     s <- pretty (L b)
     return $ text "D2" <+> s
 
-instance Subst Tm D1
-instance Subst Tm D2 where
-  subst x e1 (D2 b) = D2 (bind y e2')
+instance (Applicative m , Fresh m) => SubstM m Tm D1
+instance (Applicative m , Fresh m) => SubstM m Tm D2 where
+  substM x e1 (D2 b) = D2 . bind y <$> e2'
    where
     (y , e2) = unsafeUnbind b
-    e2' = subst x e1 e2
+    e2' = substM x e1 e2
 
 -- Heterogeneous list elements supporting 'Pretty' and 'Show'.
 data H = forall a. (Pretty a , Show a) => H a
@@ -69,6 +71,9 @@ egs = runFreshM $ do
       eg6 = lam s . lamK . lamK $ eg6Body
       eg7 = lams [ x , y ] eg5Body
 
+      eg6'Body = appV x (B0 :< If (bindK (C Bool)) (var x) (C False'))
+      eg6' = lam x . lamK . lamK $ eg6'Body
+
       -- The 'Problem' version: fails as in 'PatternUnify.Tests.tests !! 14'!
       eg8 = allProb x (C Bool) . allProb y (C Bool) $
               eqnProb (C Bool) eg5Body (C Bool) eg6
@@ -81,6 +86,8 @@ egs = runFreshM $ do
       eg9D2 = D2 (bind x eg9Body)
 
       eg11 = lam s . lamK $ var s
+
+      eg17 = lam x . lamK $ var x
 
       eg12 = _Pi x (C Bool) eg9Body
 
@@ -96,17 +103,17 @@ egs = runFreshM $ do
   eg1eg2eg4 <- eg1eg2 $$ eg4
   eg3eg2eg4 <- eg3eg2 $$ eg4
   eg5eg6 <- eg5 $$ eg6
-  eg6IntoEg7 <- subst z eg6 eg7
-  eg6IntoEg8 <- subst z eg6 eg8
-  eg6'IntoEg8 <- subst z eg6' eg8
-  eg10IntoEg9 <- subst z eg10 eg9
-  eg11IntoEg9 <- subst z eg11 eg9
-  eg11IntoEg9D1 <- subst z eg11 eg9D1
-  eg11IntoEg9D2 <- subst z eg11 eg9D2
-  eg17IntoEg9 <- subst z eg17 eg9
-  eg11IntoEg12 <- subst z eg11 eg12
-  eg13IntoEg14 <- subst z eg13 eg14
-  eg15IntoEg16 <- subst z eg15 eg16
+  eg6IntoEg7 <- substM z eg6 eg7
+  eg6IntoEg8 <- substM z eg6 eg8
+  eg6'IntoEg8 <- substM z eg6' eg8
+  eg10IntoEg9 <- substM z eg10 eg9
+  eg11IntoEg9 <- substM z eg11 eg9
+  eg11IntoEg9D1 <- substM z eg11 eg9D1
+  eg11IntoEg9D2 <- substM z eg11 eg9D2
+  eg17IntoEg9 <- substM z eg17 eg9
+  eg11IntoEg12 <- substM z eg11 eg12
+  eg13IntoEg14 <- substM z eg13 eg14
+  eg15IntoEg16 <- substM z eg15 eg16
 
   return $ [ ("app" , [ H eg1 , H eg2 , H eg1eg2 ])
            , ("app" , [ H eg3 , H eg2 , H eg3eg2 ])
@@ -115,7 +122,9 @@ egs = runFreshM $ do
            , ("app" , [ H eg5 , H eg6 , H eg5eg6 ])
            , ("sub" , [ H z , H eg6 , H eg7 , H eg6IntoEg7 ])
            , ("sub" , [ H z , H eg6 , H eg8 , H eg6IntoEg8 ])
+           , ("sub" , [ H z , H eg6' , H eg8 , H eg6'IntoEg8 ])
            , ("sub" , [ H z , H eg10 , H eg9 , H eg10IntoEg9 ])
+           , ("sub" , [ H z , H eg17 , H eg9 , H eg17IntoEg9 ])
            , ("sub" , [ H z , H eg11 , H eg9 , H eg11IntoEg9 ])
            , ("sub" , [ H z , H eg11 , H eg9D1 , H eg11IntoEg9D1 ])
            , ("sub" , [ H z , H eg11 , H eg9D2 , H eg11IntoEg9D2 ])
