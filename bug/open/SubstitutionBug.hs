@@ -20,6 +20,8 @@ egs = runFreshM $ do
   x2 <- fresh . s2n $ "x"
   y  <- fresh . s2n $ "y"
   z  <- fresh . s2n $ "z"
+  s  <- fresh . s2n $ "s"
+  t  <- fresh . s2n $ "t"
   let x = x0
   let v0 = V x0 Only
       v1 = V x1 Only
@@ -36,12 +38,29 @@ egs = runFreshM $ do
       -- substitution example ... but it works !!! ???
       eg5Body = appM z (B0 :< A (var x) :< A (var y) :< A (var y))
       eg5 = lams [ z , x , y ] eg5Body
-      eg6Body = appV x (B0 :< If (bindK (C Bool)) (var x) (C False'))
-      eg6 = lam x . lamK . lamK $ eg6Body
+      eg6Body = appV s (B0 :< If (bindK (C Bool)) (var s) (C False'))
+      eg6 = lam s . lamK . lamK $ eg6Body
       eg7 = lams [ x , y ] eg5Body
 
       -- The 'Problem' version: fails as in 'PatternUnify.Tests.tests !! 14'!
-      eg8 = allProb x (C Bool) . allProb y (C Bool) $ eqnProb (C Bool) eg5Body (C Bool) eg6Body
+      eg8 = allProb x (C Bool) . allProb y (C Bool) $
+              eqnProb (C Bool) eg5Body (C Bool) eg6
+
+      eg9Body = appM z (B0 :< A (var x) :< A (var y))
+      eg9 = allProb x (C Bool) $ eqnProb (C Bool) eg9Body (C Bool) (C True')
+      eg10 = lam s . lamK $ eg6Body
+
+      eg11 = lam s . lamK $ var s
+
+      eg12 = _Pi x (C Bool) eg9Body
+
+      eg13 = lamK . lam s $ var s
+      eg14 = allProb y (C Bool) $ eqnProb (C Bool) eg9Body (C Bool) (C True')
+
+      eg15 = lamK . lam s . lamK $ var s
+      eg16Body = appM z (B0 :< A (var x) :< A (var y) :< A (var t))
+      eg16 = allProb y (C Bool) $ eqnProb (C Bool) eg16Body (C Bool) (C True')
+
 
   eg1eg2 <- eg1 $$ eg2
   eg3eg2 <- eg3 $$ eg2
@@ -50,6 +69,11 @@ egs = runFreshM $ do
   eg5eg6 <- eg5 $$ eg6
   eg6IntoEg7 <- substM z eg6 eg7
   eg6IntoEg8 <- substM z eg6 eg8
+  eg10IntoEg9 <- substM z eg10 eg9
+  eg11IntoEg9 <- substM z eg11 eg9
+  eg11IntoEg12 <- substM z eg11 eg12
+  eg13IntoEg14 <- substM z eg13 eg14
+  eg15IntoEg16 <- substM z eg15 eg16
 
   return $ [ ("app" , [ H eg1 , H eg2 , H eg1eg2 ])
            , ("app" , [ H eg3 , H eg2 , H eg3eg2 ])
@@ -58,8 +82,11 @@ egs = runFreshM $ do
            , ("app" , [ H eg5 , H eg6 , H eg5eg6 ])
            , ("sub" , [ H z , H eg6 , H eg7 , H eg6IntoEg7 ])
            , ("sub" , [ H z , H eg6 , H eg8 , H eg6IntoEg8 ])
-           -- , eg1 $$ eg2 -- Should be \ x2 . Pair x1 x2 for *fresh* x
-           --              -- but it's  \ x1 . Pair x1 x1 instead :P
+           , ("sub" , [ H z , H eg10 , H eg9 , H eg10IntoEg9 ])
+           , ("sub" , [ H z , H eg11 , H eg9 , H eg11IntoEg9 ])
+           , ("sub" , [ H z , H eg11 , H eg12 , H eg11IntoEg12 ])
+           , ("sub" , [ H z , H eg13 , H eg14 , H eg13IntoEg14 ])
+           , ("sub" , [ H z , H eg15 , H eg16 , H eg15IntoEg16 ])
            ]
 
 main = do
