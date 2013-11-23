@@ -268,6 +268,11 @@ patterns) as well as \scare{on the right} (in expressions).
 > twinR :: Nom -> Tm
 > twinR x = twin x TwinR
 
+> appV :: Nom -> Bwd Elim -> Tm
+> appV x es = N (V x Only ) es
+
+> appM :: Nom -> Bwd Elim -> Tm
+> appM x es = N (M x) es
 
 > lam :: Nom -> Tm -> Tm
 > lam x t = L (bind x t)
@@ -279,7 +284,10 @@ patterns) as well as \scare{on the right} (in expressions).
 > lams' xs t = lams (fmap fst xs) t
 
 > lamK :: Tm -> Tm
-> lamK t = L (bind (s2n "_x") t)
+> lamK t = L (bindK t)
+
+> bindK :: Tm -> Bind Nom Tm
+> bindK t = bind (s2n "_x") t
 
 > _Pi :: Nom -> Type -> Type -> Type
 > _Pi x _S _T = Pi _S (bind x _T)
