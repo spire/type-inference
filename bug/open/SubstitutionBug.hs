@@ -42,6 +42,9 @@ egs = runFreshM $ do
       eg6 = lam s . lamK . lamK $ eg6Body
       eg7 = lams [ x , y ] eg5Body
 
+      eg6'Body = appV x (B0 :< If (bindK (C Bool)) (var x) (C False'))
+      eg6' = lam x . lamK . lamK $ eg6'Body
+
       -- The 'Problem' version: fails as in 'PatternUnify.Tests.tests !! 14'!
       eg8 = allProb x (C Bool) . allProb y (C Bool) $
               eqnProb (C Bool) eg5Body (C Bool) eg6
@@ -51,6 +54,8 @@ egs = runFreshM $ do
       eg10 = lam s . lamK $ eg6Body
 
       eg11 = lam s . lamK $ var s
+
+      eg17 = lam x . lamK $ var x
 
       eg12 = _Pi x (C Bool) eg9Body
 
@@ -68,8 +73,10 @@ egs = runFreshM $ do
       eg5eg6 = eg5 $$ eg6
       eg6IntoEg7 = subst z eg6 eg7
       eg6IntoEg8 = subst z eg6 eg8
+      eg6'IntoEg8 = subst z eg6' eg8
       eg10IntoEg9 = subst z eg10 eg9
       eg11IntoEg9 = subst z eg11 eg9
+      eg17IntoEg9 = subst z eg17 eg9
       eg11IntoEg12 = subst z eg11 eg12
       eg13IntoEg14 = subst z eg13 eg14
       eg15IntoEg16 = subst z eg15 eg16
@@ -81,7 +88,9 @@ egs = runFreshM $ do
            , ("app" , [ H eg5 , H eg6 , H eg5eg6 ])
            , ("sub" , [ H z , H eg6 , H eg7 , H eg6IntoEg7 ])
            , ("sub" , [ H z , H eg6 , H eg8 , H eg6IntoEg8 ])
+           , ("sub" , [ H z , H eg6' , H eg8 , H eg6'IntoEg8 ])
            , ("sub" , [ H z , H eg10 , H eg9 , H eg10IntoEg9 ])
+           , ("sub" , [ H z , H eg17 , H eg9 , H eg17IntoEg9 ])
            , ("sub" , [ H z , H eg11 , H eg9 , H eg11IntoEg9 ])
            , ("sub" , [ H z , H eg11 , H eg12 , H eg11IntoEg12 ])
            , ("sub" , [ H z , H eg13 , H eg14 , H eg13IntoEg14 ])
