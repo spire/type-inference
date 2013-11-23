@@ -1,4 +1,11 @@
-{-# LANGUAGE ExistentialQuantification , RankNTypes #-}
+{-# LANGUAGE ExistentialQuantification
+  , RankNTypes
+  , MultiParamTypeClasses
+  , TemplateHaskell
+  , FlexibleInstances
+  , FlexibleContexts
+  , UndecidableInstances
+  #-}
 -- The 'unsafeUnbind' usage is ... wait for it ... unsafe :P
 --
 -- Run with 'runhaskell SubstitutionBug.hs'.
@@ -9,6 +16,26 @@ import Common.PrettyPrint
 import Common.Names
 import Common.BwdFwd
 import Control.Monad
+import Unbound.LocallyNameless
+
+data D1 = D1 (Bind Nom Tm) deriving Show
+data D2 = D2 (Bind Nom Tm) deriving Show
+
+instance Pretty D1 where
+  pretty (D1 b) = do
+    s <- pretty (L b)
+    return $ text "D1" <+> s
+instance Pretty D2 where
+  pretty (D2 b) = do
+    s <- pretty (L b)
+    return $ text "D2" <+> s
+
+instance Subst Tm D1
+instance Subst Tm D2 where
+  subst x e1 (D2 b) = D2 (bind y e2')
+   where
+    (y , e2) = unsafeUnbind b
+    e2' = subst x e1 e2
 
 -- Heterogeneous list elements supporting 'Pretty' and 'Show'.
 data H = forall a. (Pretty a , Show a) => H a
@@ -50,6 +77,9 @@ egs = runFreshM $ do
       eg9 = allProb x (C Bool) $ eqnProb (C Bool) eg9Body (C Bool) (C True')
       eg10 = lam s . lamK $ eg6Body
 
+      eg9D1 = D1 (bind x eg9Body)
+      eg9D2 = D2 (bind x eg9Body)
+
       eg11 = lam s . lamK $ var s
 
       eg12 = _Pi x (C Bool) eg9Body
@@ -61,19 +91,22 @@ egs = runFreshM $ do
       eg16Body = appM z (B0 :< A (var x) :< A (var y) :< A (var t))
       eg16 = allProb y (C Bool) $ eqnProb (C Bool) eg16Body (C Bool) (C True')
 
-
   eg1eg2 <- eg1 $$ eg2
   eg3eg2 <- eg3 $$ eg2
   eg1eg2eg4 <- eg1eg2 $$ eg4
   eg3eg2eg4 <- eg3eg2 $$ eg4
   eg5eg6 <- eg5 $$ eg6
-  eg6IntoEg7 <- substM z eg6 eg7
-  eg6IntoEg8 <- substM z eg6 eg8
-  eg10IntoEg9 <- substM z eg10 eg9
-  eg11IntoEg9 <- substM z eg11 eg9
-  eg11IntoEg12 <- substM z eg11 eg12
-  eg13IntoEg14 <- substM z eg13 eg14
-  eg15IntoEg16 <- substM z eg15 eg16
+  eg6IntoEg7 <- subst z eg6 eg7
+  eg6IntoEg8 <- subst z eg6 eg8
+  eg6'IntoEg8 <- subst z eg6' eg8
+  eg10IntoEg9 <- subst z eg10 eg9
+  eg11IntoEg9 <- subst z eg11 eg9
+  eg11IntoEg9D1 <- subst z eg11 eg9D1
+  eg11IntoEg9D2 <- subst z eg11 eg9D2
+  eg17IntoEg9 <- subst z eg17 eg9
+  eg11IntoEg12 <- subst z eg11 eg12
+  eg13IntoEg14 <- subst z eg13 eg14
+  eg15IntoEg16 <- subst z eg15 eg16
 
   return $ [ ("app" , [ H eg1 , H eg2 , H eg1eg2 ])
            , ("app" , [ H eg3 , H eg2 , H eg3eg2 ])
@@ -84,6 +117,8 @@ egs = runFreshM $ do
            , ("sub" , [ H z , H eg6 , H eg8 , H eg6IntoEg8 ])
            , ("sub" , [ H z , H eg10 , H eg9 , H eg10IntoEg9 ])
            , ("sub" , [ H z , H eg11 , H eg9 , H eg11IntoEg9 ])
+           , ("sub" , [ H z , H eg11 , H eg9D1 , H eg11IntoEg9D1 ])
+           , ("sub" , [ H z , H eg11 , H eg9D2 , H eg11IntoEg9D2 ])
            , ("sub" , [ H z , H eg11 , H eg12 , H eg11IntoEg12 ])
            , ("sub" , [ H z , H eg13 , H eg14 , H eg13IntoEg14 ])
            , ("sub" , [ H z , H eg15 , H eg16 , H eg15IntoEg16 ])
@@ -112,3 +147,5 @@ main = do
     -- :D
     case last hs of
       H h -> putStrLn $ "=\n" ++ p h
+
+$(derive[''D1 , ''D2])
