@@ -90,7 +90,8 @@ egs = runFreshM $ do
            ]
 
 main = do
-  forM_ egs $ \ x -> do
+  forM_ (zip [0..] egs) $ \ (n , x) -> do
+    putStrLn $ "Example " ++ show n ++ ":"
     print show x
     putStrLn ""
     print ppp x
