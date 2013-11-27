@@ -15,14 +15,23 @@ succeeding partially), and those which must fail.
 > import Control.Monad (unless)
 > import Data.Foldable (foldMap)
 
-> import Unbound.LocallyNameless
+> import Unbound.LocallyNameless.SubstM
+> import Unbound.LocallyNameless hiding (Subst(..))
 
 > import Common.BwdFwd
 > import Common.PrettyPrint
-> import PatternUnify.Tm
+> import PatternUnify.Tm hiding ((%%) , ($$))
+> import qualified PatternUnify.Tm
 > import PatternUnify.Context
 > import PatternUnify.Check
 > import PatternUnify.Unify
+
+Make unsafe convenience versions of '(%%)', '($$)', and 'substsM' for
+constructing examples.  The user promises to avoid capture ...
+
+> a %% b = runFreshM (a PatternUnify.Tm.%% b)
+> a $$ b = runFreshM (a PatternUnify.Tm.$$ b)
+> substs subs e = runFreshM (substsM subs e)
 
 > if' :: String -> Type -> Tm -> Tm -> Tm -> Tm
 > if' s b x t f = x %% If (bind (s2n s) b) t f

@@ -7,21 +7,22 @@
 
 > module PatternUnify.Unify where
 
-> import Prelude hiding (elem, notElem, foldr)
+> import Prelude hiding (elem, notElem, foldr, mapM, sequence)
 
-> import Control.Applicative ((<$>), (<*>), optional)
+> import Control.Applicative ((<$>), (<*>), optional, Applicative(..))
 > import Control.Monad ((>=>), unless)
 > import Control.Monad.Error (throwError, when)
 > import Control.Monad.Reader (ask, local)
+> import Data.Monoid (mconcat)
 
-> import Data.Foldable (Foldable, fold, foldr, elem, notElem, foldMap)
+> import Data.Foldable (Foldable, fold, foldlM, foldr, elem, notElem, foldMap)
 > import Data.Maybe (isJust)
 > import Data.Monoid (Any(..), getAny)
 > import Data.Set (Set, isSubsetOf, member, notMember)
-> import Data.Traversable (Traversable, traverse)
+> import Data.Traversable (Traversable, traverse, mapM, sequence)
 
 > import Common.BwdFwd 
-> import Common.Names
+> import Common.Names hiding (Subst(..))
 > import Common.PrettyPrint
 > import PatternUnify.Tm (Can(..), Tm(..), Elim(..), Head(..), Twin(..),
 >            Nom, Type, Subs,
@@ -70,7 +71,7 @@ cursor.
 > hole :: Telescope -> Type -> (Tm -> Contextual a) -> Contextual a
 > hole _Gam _T f = do  alpha <- fresh (s2n "alpha")
 >                      pushL $ E alpha (_Pis _Gam _T, HOLE)
->                      r <- f (meta alpha $*$ _Gam)
+>                      r <- f =<< (meta alpha $*$ _Gam)
 >                      goLeft
 >                      return r
 
@@ -231,11 +232,16 @@ solves the equation $[[E[alpha] ~~ t]]$.  It will throw an error if
 the problem is unsolvable due to an impossible occurrence.
 
 > invert ::  Nom -> Type -> Bwd Elim -> Tm -> Contextual (Maybe Tm)
-> invert alpha _T e t  | occurCheck True alpha t = throwError "occur check"
->                      | alpha `notMember` fmvs t, Just xs <- toVars e, linearOn t xs = do
+> invert alpha _T e t  = do
+>   occurs <- occurCheck True alpha t
+>   vs <- toVars e
+>   invert' occurs vs
+>   where
+>     invert' occurs vs | occurs = throwError "occur check"
+>                       | alpha `notMember` fmvs t, Just xs <- vs, linearOn t xs = do
 >                          b <- local (const B0) (typecheck _T (lams xs t))
 >                          return $ if b then Just (lams xs t) else Nothing
->                      | otherwise = return Nothing
+>                       | otherwise = return Nothing
 
 Note that the solution |lams xs t| is typechecked under no parameters,
 so typechecking will fail if an out-of-scope variable is used.
@@ -246,17 +252,21 @@ rigid context (where the first argument is |True|), any occurrence is
 fatal.  In a weak rigid context (where it is |False|), the evaluation
 context of the metavariable must be a list of variables.
 
-> occurCheck :: Bool -> Nom -> Tm -> Bool
-> occurCheck w alpha (L b)           =  occurCheck w alpha t
->                                           where (_, t) = unsafeUnbind b
-> occurCheck w alpha (N (V _ _) e)   =  getAny $ foldMap
->                                           (foldMapElim (Any `o` occurCheck False alpha)) e
-> occurCheck w alpha (N (M beta) e)  =  alpha == beta && (w || isJust (toVars e))
-> occurCheck w alpha (C c)           =  getAny $ foldMap (Any `o` occurCheck w alpha) c
-> occurCheck w alpha (Pi _S _T)      =  occurCheck w alpha _S || occurCheck w alpha _T'
->                                           where (_, _T') = unsafeUnbind _T
-> occurCheck w alpha (Sig _S _T)      =  occurCheck w alpha _S || occurCheck w alpha _T'
->                                           where (_, _T') = unsafeUnbind _T
+> occurCheck :: (Fresh m , Applicative m) => Bool -> Nom -> Tm -> m Bool
+> occurCheck w alpha (L b)           = do
+>   (_, t) <- unbind b
+>   occurCheck w alpha t
+> occurCheck w alpha (N (V _ _) e)   = getAny . fold <$> mapM (foldMapElim (fmap Any . occurCheck False alpha)) e
+> occurCheck w alpha (N (M beta) e)  = do
+>   vs <- toVars e
+>   return $ alpha == beta && (w || isJust vs)
+> occurCheck w alpha (C c)           = getAny . fold <$> mapM (fmap Any . occurCheck w alpha) c
+> occurCheck w alpha (Pi _S _T)      = do
+>   (_, _T') <- unbind _T
+>   (||) <$> occurCheck w alpha _S <*> occurCheck w alpha _T'
+> occurCheck w alpha (Sig _S _T)     = do
+>   (_, _T') <- unbind _T
+>   (||) <$> occurCheck w alpha _S <*> occurCheck w alpha _T'
 
 Here |toVars| tries to convert a spine to a list of variables, and
 |linearOn| determines if a list of variables is linear on the free
@@ -271,27 +281,35 @@ implements $\eta$-contraction for terms.
 > -- toVars should fail in this case?
 > linearOn t  (as:<a)  = not (a `elem` fvs t && a `elem` as) && linearOn t as
 
-> etaContract :: Tm -> Tm
-> etaContract (L b) = case etaContract t of
+> etaContract :: (Fresh m , Applicative m) => Tm -> m Tm
+> etaContract (L b) = do
+>   (y, t) <- unbind b
+>   et <- etaContract t
+>   return $ case et of
 >      N x (e :< A (N (V y' _) B0)) | y == y', not (y `elem` fvs e)  -> N x e
 >      t'                                                            -> lam y t'
->    where (y, t) = unsafeUnbind b
-> etaContract (N x as)    = N x (fmap (mapElim etaContract) as)
-> etaContract (PAIR s t)  = case (etaContract s, etaContract t) of
+> etaContract (N x as)    = N x <$> mapM (mapElim etaContract) as
+> etaContract (PAIR s t)  = do
+>   es <- etaContract s
+>   et <- etaContract t
+>   return $ case (es , et) of
 >     (N x (as :< Hd), N y (bs :< Tl)) | x == y, as == bs  -> N x as
 >     (s', t')                                             -> PAIR s' t'
-> etaContract (C c)       = C (fmap etaContract c)
+> etaContract (C c)       = C <$> mapM etaContract c
 
-> toVar :: Tm -> Maybe Nom
-> toVar v = case etaContract v of  N (V x _) B0  -> Just x
->                                  _             -> Nothing
+> toVar :: (Fresh m , Applicative m) => Tm -> m (Maybe Nom)
+> toVar v = do
+>   ev <- etaContract v
+>   return $ case ev of  N (V x _) B0  -> Just x
+>                        _             -> Nothing
 >
-> toVars :: Traversable f => f Elim -> Maybe (f Nom)
-> toVars = traverse (unA >=> toVar)
->   where  unA (A t)  = Just t
+> toVars :: (Fresh m , Applicative m) => Bwd Elim -> m (Maybe (Bwd Nom))
+> toVars es | Just fts <- traverse unA es = sequence <$> traverse toVar fts
+>           | otherwise = return Nothing
+>   where  unA :: Elim -> Maybe Tm
+>          unA (A t)  = Just t
 >          unA _      = Nothing
 >
-
 
 \subsection{Intersection}
 \label{subsec:miller:impl:intersect}
@@ -317,22 +335,30 @@ will have definitionally equal types anyway.
 > flexFlexSame ::  Equation -> Contextual ()
 > flexFlexSame q@(EQNO (N (M alpha) e) (N (M alpha_) e')) = do
 >     (_Tel, _T) <- telescope =<< lookupMeta alpha
->     case intersect _Tel e e' of
->         Just _Tel' | fvs _T `isSubsetOf` vars _Tel'  -> instantiate (alpha, _Pis _Tel' _T, \ beta -> lams' _Tel (beta $*$ _Tel))
+>     i <- intersect _Tel e e'
+>     case i of
+>         Just _Tel' | fvs _T `isSubsetOf` vars _Tel'  ->
+>                        instantiate (alpha, _Pis _Tel' _T,
+>                          \ beta -> lams' _Tel <$> (beta $*$ _Tel))
 >         _                                            -> block (Unify q)
 
 Given a telescope and the two evaluation contexts, |intersect|
 checks the evaluation contexts are lists of variables and produces the
 telescope on which they agree.
 
-> intersect ::  Telescope -> Bwd Elim -> Bwd Elim -> Maybe Telescope
-> intersect B0                 B0          B0           = return B0
+> intersect :: (Fresh m , Applicative m)
+>           => Telescope -> Bwd Elim -> Bwd Elim -> m (Maybe Telescope)
+> intersect B0                 B0          B0           = return . Just $ B0
 > intersect (_Tel :< (z, _S))  (e :< A s)  (e' :< A t)  = do
->     _Tel'  <- intersect _Tel e e'
->     x      <- toVar s
->     y      <- toVar t
->     if x == y then return (_Tel' :< (z, _S)) else return _Tel'
-> intersect _ _ _ = Nothing
+>     m_Tel' <- intersect _Tel e e'
+>     mx <- toVar s
+>     my <- toVar t
+>     return $ do
+>       _Tel'  <- m_Tel'
+>       x      <- mx
+>       y      <- my
+>       if x == y then return (_Tel' :< (z, _S)) else return _Tel'
+> intersect _ _ _ = return Nothing
 
 
 \subsection{Pruning}
@@ -399,24 +425,30 @@ metavariable is generated.
 > pruneMeta :: Set Nom -> Nom -> Bwd Elim -> Contextual [Instantiation]
 > pruneMeta _Vs beta e = do
 >     (_Tel, _T) <- telescope =<< lookupMeta beta
->     case prune _Vs _Tel e of
+>     p <- prune _Vs _Tel e
+>     case p of
 >         Just _Tel'  | _Tel' /= _Tel, fvs _T `isSubsetOf` vars _Tel'
->                         -> return [(beta, _Pis _Tel' _T, \ beta' -> lams' _Tel (beta' $*$ _Tel'))]
+>                         -> return [(beta, _Pis _Tel' _T,
+>                                     \ beta' -> lams' _Tel <$> (beta' $*$ _Tel'))]
 >         _               -> return []
 
 The |prune| function generates a restricted telescope, removing
 arguments that contain a rigid occurrence of a forbidden variable.
 This may fail if it is not clear which arguments must be removed.
 
-> prune :: Set Nom -> Telescope -> Bwd Elim -> Maybe Telescope
-> prune _Vs B0                 B0          = Just B0
+> prune :: (Fresh m , Applicative m)
+>       => Set Nom -> Telescope -> Bwd Elim -> m (Maybe Telescope)
+> prune _Vs B0                 B0          = return $ Just B0
 > prune _Vs (_Del :< (x, _S))  (e :< A s)  = do
->     _Del' <- prune _Vs _Del e
->     case toVar s of
->       Just y  | y `member` _Vs, fvs _S `isSubsetOf` vars _Del'  -> Just (_Del' :< (x, _S))
->       _       | fvrigs s `notSubsetOf` _Vs                      -> Just _Del'
->               | otherwise                                       -> Nothing
-> prune _ _ _ = Nothing
+>     m_Del' <- prune _Vs _Del e
+>     v <- toVar s
+>     return $ do
+>       _Del' <- m_Del'
+>       case v of
+>         Just y  | y `member` _Vs, fvs _S `isSubsetOf` vars _Del'  -> Just (_Del' :< (x, _S))
+>         _       | fvrigs s `notSubsetOf` _Vs                      -> Just _Del'
+>                 | otherwise                                       -> Nothing
+> prune _ _ _ = return Nothing
 
 
 A metavariable |alpha| can be instantiated to a more specific type by
@@ -424,11 +456,11 @@ moving left through the context until it is found, creating a new
 metavariable and solving for |alpha|.  The type must not depend on any
 metavariables defined after |alpha|.
 
-> type Instantiation = (Nom, Type, Tm -> Tm)
+> type Instantiation = (Nom, Type, Tm -> Contextual Tm)
 
 > instantiate :: Instantiation -> Contextual ()
 > instantiate d@(alpha, _T, f) = popL >>= \ e -> case e of 
->       E beta (_U, HOLE)  | alpha == beta  ->  hole B0 _T (\ t -> define B0 beta _U (f t))
+>       E beta (_U, HOLE)  | alpha == beta  ->  hole B0 _T (\ t -> define B0 beta _U =<< f t)
 >       _                                   ->  do  pushR (Right e)
 >                                                   instantiate d
 
@@ -444,18 +476,22 @@ Figure~\longref{fig:miller:solve}, as described in
 Subsection~\longref{subsec:miller:spec:metasimp}.
 
 > lower :: Telescope -> Nom -> Type -> Contextual Bool
-> lower _Phi alpha (Sig _S _T) =  hole _Phi _S $ \ s ->
->                                 hole _Phi (inst _T s) $ \ t ->
->                                 define _Phi alpha (Sig _S _T) (PAIR s t) >>
->                                 return True
+> lower _Phi alpha (Sig _S _T) =  hole _Phi _S $ \ s -> do
+>                                   _T' <- inst _T s
+>                                   hole _Phi _T' $ \ t ->
+>                                     define _Phi alpha (Sig _S _T) (PAIR s t) >>
+>                                     return True
 >
 > lower _Phi alpha (Pi _S _T) = do  x <- fresh (s2n "x")
+>                                   _T' <- inst _T (var x)
 >                                   splitSig B0 x _S >>= maybe
->                                       (lower (_Phi :< (x, _S)) alpha (inst _T (var x)))
->                                       (\ (y, _A, z, _B, s, (u, v)) ->
->                                           hole _Phi (_Pi y _A  (_Pi z _B (inst _T s))) $ \ w ->
->                                           define _Phi alpha (Pi _S _T) (lam x (w $$ u $$ v)) >>
->                                           return True)      
+>                                       (lower (_Phi :< (x, _S)) alpha _T')
+>                                       (\ (y, _A, z, _B, s, (u, v)) -> do
+>                                             _T'' <- inst _T s
+>                                             hole _Phi (_Pi y _A  (_Pi z _B _T'')) $ \ w -> do
+>                                               w' <- foldlM ($$) w [u , v]
+>                                               define _Phi alpha (Pi _S _T) (lam x w')
+>                                               return True)
 >
 > lower _Phi alpha UNIT = define _Phi alpha UNIT TT >> return True
 >
@@ -476,13 +512,20 @@ inhabitants of the new types by projecting the original variable.
 > splitSig _Phi x (Sig _S _T)  = do
 >                                y  <- fresh (s2n "y")
 >                                z  <- fresh (s2n "z")
+>                                x' <- var x $*$ _Phi
+>                                x'hd <- x' %% Hd
+>                                x'tl <- x' %% Tl
+>                                y' <- var y $*$ _Phi
+>                                z' <- var z $*$ _Phi
+>                                _T' <- inst _T y'
 >                                return $ Just  (y, _Pis _Phi _S,
->                                                z, _Pis _Phi (inst _T (var y $*$ _Phi)),
->                                                lams' _Phi (PAIR (var y $*$ _Phi) (var z $*$ _Phi)),
->                                                (lams' _Phi (var x $*$ _Phi %% Hd), 
->                                                     lams' _Phi (var x $*$ _Phi %% Tl)))
+>                                                z, _Pis _Phi _T',
+>                                                lams' _Phi (PAIR y' z'),
+>                                                (lams' _Phi x'hd,
+>                                                   lams' _Phi x'tl))
 > splitSig _Phi x (Pi _A _B)   = do  a <- fresh (s2n "a")
->                                    splitSig (_Phi :< (a, _A)) x (inst _B (var a))
+>                                    _B' <- inst _B (var a)
+>                                    splitSig (_Phi :< (a, _A)) x _B'
 > splitSig _ _ _ = return Nothing
 
 
@@ -508,11 +551,14 @@ Subsection~\longref{subsec:miller:spec:decompose}.
 >         -- could recurse right here again?
 >         _ |  x `notElem` fvs q -> active q
 >         P _S         -> splitSig B0 x _S >>= \ m -> case m of
->             Just (y, _A, z, _B, s, _)  -> solver (allProb y _A  (allProb z _B (subst x s q)))
+>             Just (y, _A, z, _B, s, _)  -> do
+>               q' <- substM x s q
+>               solver (allProb y _A (allProb z _B q'))
 >             Nothing                    -> inScope x (P _S) $ solver q
->         Twins _S _T  -> equal TYPE _S _T >>= \ c ->
+>         Twins _S _T  -> equal TYPE _S _T >>= \ c -> do
+>             q' <- substM x (var x) q
 >                                     -- get rid of twin variables
->             if c  then  solver (allProb x _S (subst x (var x) q))
+>             if c  then  solver (allProb x _S q')
 >                   else  inScope x (Twins _S _T) $ solver q
 >             
 
@@ -527,10 +573,20 @@ function in order to make progress.
 >
 > unify (EQN (Pi _A _B) f (Pi _S _T) g) = do
 >     x <- fresh (s2n "x")
->     active $ allTwinsProb x _A _S (eqnProb (inst _B (twinL x)) (f $$ twinL x) (inst _T (twinR x)) (g $$ twinR x))
+>     _B' <- inst _B (twinL x)
+>     f' <- f $$ twinL x
+>     _T' <- inst _T (twinR x)
+>     g' <-  g $$ twinR x
+>     active $ allTwinsProb x _A _S (eqnProb _B' f' _T' g')
 > unify (EQN (Sig _A _B) t (Sig _C _D) w) = do
->     active $ eqnProb _A (hd t) _C (hd w)
->     active $ eqnProb (inst _B (hd t)) (tl t) (inst _D (hd w)) (tl w)
+>     hdt <- hd t
+>     hdw <- hd w
+>     active $ eqnProb _A hdt _C hdw
+>     tlt <- tl t
+>     tlw <- tl w
+>     _B' <- inst _B hdt
+>     _D' <- inst _D hdw
+>     active $ eqnProb _B' tlt _D' tlw
 >
 > unify q@(EQNO (N (M alpha) e) (N (M beta) e'))
 >     | alpha == beta =  tryPrune q <|| tryPrune (sym q) <|| flexFlexSame q
@@ -556,12 +612,16 @@ reflexive.
 > rigidRigid (EQN TYPE (Pi _A _B) TYPE (Pi _S _T)) = do
 >     x <- fresh (s2n "x")
 >     active $ eqnProb TYPE _A TYPE _S
->     active $ allTwinsProb x _A _S (eqnProb TYPE (inst _B (twinL x)) TYPE (inst _T (twinR x)))
+>     _B' <- inst _B (twinL x)
+>     _T' <- inst _T (twinR x)
+>     active $ allTwinsProb x _A _S (eqnProb TYPE _B' TYPE _T')
 >
 > rigidRigid (EQN TYPE (Sig _A _B) TYPE (Sig _S _T)) = do
 >     x <- fresh (s2n "x")
 >     active $ eqnProb TYPE _A TYPE _S
->     active $ allTwinsProb x _A _S (eqnProb TYPE (inst _B (twinL x)) TYPE (inst _T (twinR x)))
+>     _B' <- inst _B (twinL x)
+>     _T' <- inst _T (twinR x)
+>     active $ allTwinsProb x _A _S (eqnProb TYPE _B' TYPE _T')
 >
 > rigidRigid (EQNO (N (V x w) e) (N (V x' w') e')) =
 >     matchSpine x w e x' w' e' >> return ()
@@ -617,20 +677,26 @@ $[[(s : S) ~~ (u : S) && (t : {s/x} T) ~~ (v : {u/x} T)]]$.
 > matchSpine x w (e :< A a) x' w' (e' :< A s) = do
 >     (Pi _A _B, Pi _S _T) <- matchSpine x w e x' w' e'
 >     active $ eqnProb _A a _S s
->     return (inst _B a, inst _T s)
+>     ( , ) <$> inst _B a <*> inst _T s
 > matchSpine x w (e :< Hd) x' w' (e' :< Hd) = do
 >     (Sig _A _B, Sig _S _T) <- matchSpine x w e x' w' e'
 >     return (_A, _S)
 > matchSpine x w (e :< Tl) x' w' (e' :< Tl) = do
 >     (Sig _A _B, Sig _S _T) <- matchSpine x w e x' w' e'
->     return (inst _B (N (V x w) (e :< Hd)), inst _T (N (V x' w') (e' :< Hd)))
+>     ( , ) <$> inst _B (N (V x w) (e :< Hd)) <*> inst _T (N (V x' w') (e' :< Hd))
 > matchSpine x w (e :< If _T s t) x' w' (e' :< If _T' s' t') = do
 >     (BOOL, BOOL) <- matchSpine x w e x' w' e'
 >     y <- fresh (s2n "y")
->     active $ allProb y BOOL (eqnProb TYPE (inst _T (var y)) TYPE (inst _T' (var y)))
->     active $ eqnProb (inst _T TRUE) s (inst _T' TRUE) s'
->     active $ eqnProb (inst _T FALSE) t (inst _T' FALSE) t'
->     return (inst _T (N (V x w) e), inst _T' (N (V x' w') e'))
+>     i_T <- inst _T (var y)
+>     i_T' <- inst _T' (var y)
+>     active $ allProb y BOOL (eqnProb TYPE i_T TYPE i_T')
+>     i_T <- inst _T TRUE
+>     i_T' <- inst _T' TRUE
+>     active $ eqnProb i_T s i_T' s'
+>     i_T <- inst _T FALSE
+>     i_T' <- inst _T' FALSE
+>     active $ eqnProb i_T t i_T' t'
+>     ( , ) <$> inst _T (N (V x w) e) <*> inst _T' (N (V x' w') e')
 > matchSpine _ _ _ _ _ _ = throwError "spine mismatch"
 
 
@@ -653,8 +719,10 @@ usually be solved before the constraint itself.
 > ambulando :: Subs -> Contextual ()
 > ambulando theta = optional popR >>= \ x -> case x of
 >  Nothing             -> return ()
->  Just (Left theta')  -> ambulando (theta *%* theta')
->  Just (Right e)      -> case update theta e of
+>  Just (Left theta')  -> ambulando =<< (theta *%* theta')
+>  Just (Right e)      -> do
+>    e' <- update theta e
+>    case e' of
 >    -- What if HOLE is a DEFN?
 >     e'@(E alpha (_T, HOLE))   ->  do  lower B0 alpha _T <|| pushL e'
 >                                       ambulando theta
@@ -669,12 +737,13 @@ be worked on or |Blocked| and unable to make progress.  The |update|
 function applies a substitution to an entry, updating the status of a
 problem if its type changes.
 
-> update :: Subs -> Entry -> Entry
-> update theta (Q s p) = Q s' p'
->   where  p'  = substs theta p
->          s'  | p == p'    = s 
->              | otherwise  = Active
-> update theta e = substs theta e
+> update :: (Fresh m , Applicative m) => Subs -> Entry -> m Entry
+> update theta (Q s p) = do
+>   p' <- substsM theta p
+>   return $ Q (s' p') p'
+>   where  s' p' | p == p'    = s
+>                | otherwise  = Active
+> update theta e = substsM theta e
 
 For simplicity, |Blocked| problems do not store any information about
 when they may be resumed.  An optimisation would be to track the

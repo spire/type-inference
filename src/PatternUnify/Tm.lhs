@@ -4,17 +4,19 @@
 > {-# LANGUAGE GADTs, KindSignatures, TemplateHaskell,
 >       FlexibleInstances, MultiParamTypeClasses, FlexibleContexts,
 >       UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables,
->       DeriveFunctor, DeriveFoldable, StandaloneDeriving, PatternGuards #-}
+>       DeriveFunctor, DeriveFoldable, StandaloneDeriving, PatternGuards,
+>       DeriveTraversable, TupleSections #-}
 
 > module PatternUnify.Tm where
 
 > import Prelude hiding (foldl, foldr, elem)
 > import Control.Applicative (Applicative, pure, (<*>), (<$>))
 > import Control.Monad.Reader (MonadReader, local)
-> import Data.Foldable (Foldable, foldl, foldr, toList)
+> import Data.Foldable (Foldable, foldlM, foldr, toList)
 > import Data.Function (on)
 > import Data.List (unionBy)
 > import Data.Monoid hiding ((<>))
+> import Data.Traversable (Traversable, traverse)
 > import qualified Data.Set as Set
 > import Data.Set (Set, member)
 
@@ -48,6 +50,7 @@ binding) so as to factor out common patterns in the typechecker.
 >             | Bool | True' | False'
 >             | Nat | Ze | Su t
 >             | Unit | Tt
+>   deriving (Traversable)
 > data Head   = V Nom Twin | M Nom
 > data Twin   = Only | TwinL | TwinR
 > data Elim   = A Tm
@@ -65,26 +68,30 @@ cannot be made a functor in the same way, because |Bind Nom| is not a
 functor on |*| but only on the subcategory induced by |Alpha|.
 However, the action on morphisms can be defined thus:
 
-> mapElim :: (Tm -> Tm) -> Elim -> Elim
-> mapElim f  (A a)        = A (f a)
-> mapElim _  Hd           = Hd
-> mapElim _  Tl           = Tl
-> mapElim f  (If _P ct cf)  = If (bind x (f _P')) (f ct) (f cf)
->   where (x, _P') = unsafeUnbind _P
-> mapElim f  (Fold _P cz cs)  = Fold (bind x (f _P')) (f cz) (bind y (bind z (f cs'')))
->   where (x, _P') = unsafeUnbind _P
->         (y , cs') = unsafeUnbind cs
->         (z , cs'') = unsafeUnbind cs'
+> mapElim :: (Fresh m , Applicative m) => (Tm -> m Tm) -> Elim -> m Elim
+> mapElim f  (A a)        = A <$> f a
+> mapElim _  Hd           = return Hd
+> mapElim _  Tl           = return Tl
+> mapElim f  (If _P ct cf)  = do
+>   (x , _P') <- unbind _P
+>   If <$> (bind x <$> f _P') <*> f ct <*> f cf
+> mapElim f  (Fold _P cz cs)  = do
+>   (x , _P') <- unbind _P
+>   (y , cs') <- unbind cs
+>   (z , cs'') <- unbind cs'
+>   Fold <$> (bind x <$> f _P') <*> f cz <*> (bind y . bind z <$> f cs'')
 >
-> foldMapElim :: Monoid m => (Tm -> m) -> Elim -> m
+> foldMapElim :: (Monoid mon , Fresh m , Applicative m) => (Tm -> m mon) -> Elim -> m mon
 > foldMapElim f  (A a)        = f a
-> foldMapElim _  Hd           = mempty
-> foldMapElim _  Tl           = mempty
-> foldMapElim f  (If _T s t)  = f _T' <.> f s <.> f t
->   where (_, _T') = unsafeUnbind _T
-> foldMapElim f  (Fold _P cz cs)  = f _P' <.> f cz <.> f cs''
->   where (_, _P') = unsafeUnbind _P
->         (_, cs'') = unsafeUnbind . snd . unsafeUnbind $ cs
+> foldMapElim _  Hd           = return $ mempty
+> foldMapElim _  Tl           = return $ mempty
+> foldMapElim f  (If _T s t)  = do
+>   (_ , _T') <- unbind _T
+>   mconcat <$> mapM f [ _T' , s , t ]
+> foldMapElim f  (Fold _P cz cs) = do
+>   (_ , _P') <- unbind _P
+>   (_ , cs'') <- unbind =<< (snd <$> unbind cs)
+>   mconcat <$> mapM f [ _P' , cz , cs'' ]
 
 
 %if False
@@ -112,14 +119,17 @@ However, the action on morphisms can be defined thus:
 > instance Alpha Head
 > instance Alpha Elim
 
-> instance Subst Tm Tm where
->     substs     = eval
->     subst n u  = substs [(n, u)]
+Substitution.
 
-> instance Subst Tm t => Subst Tm (Can t)
-> instance Subst Tm Twin
-> instance Subst Tm Head 
-> instance Subst Tm Elim
+> instance (Fresh m , Applicative m) => SubstM m Tm Tm where
+>   substsM = eval
+>   substM n u = substsM [(n, u)]
+
+> instance SubstM m Tm t => SubstM m Tm (Can t)
+> instance SubstM m Tm t => SubstM m Tm (Bwd t)
+> instance Monad m => SubstM m Tm Twin
+> instance Monad m => SubstM m Tm Head
+> instance (Fresh m , Applicative m) => SubstM m Tm Elim
 
 > instance Pretty Tm where
 >     pretty (Pi _S b) =
@@ -394,46 +404,53 @@ metasubstitution.
 
 > type Subs = [(Nom, Tm)]
 
-> (*%*) :: Subs -> Subs -> Subs
-> delta' *%* delta = unionBy ((==) `on` fst) delta' (substs delta' delta)
+> (*%*) :: (Fresh m , Applicative m) => Subs -> Subs -> m Subs
+> delta' *%* delta = unionBy ((==) `on` fst) delta' <$> substsM delta' delta
 
 The evaluator is an implementation of hereditary substitution defined
 in Figure~\longref{fig:miller:heresubst}: it proceeds structurally
 through terms, replacing variables with their values and eliminating
 redexes using the |(%%)| operator defined below.
 
-> eval :: Subs -> Tm -> Tm
-> eval g (L b)        = L (evalUnder g b)
-> eval g (N h e)      = foldl (%%) (evalHead g h) (fmap (mapElim (eval g)) e)
-> eval g (C c)        = C (fmap (eval g) c)
-> eval g (Pi _S _T)   = Pi (eval g _S) (evalUnder g _T) 
-> eval g (Sig _S _T)  = Sig (eval g _S) (evalUnder g _T) 
+> eval :: (Fresh m , Applicative m) => Subs -> Tm -> m Tm
+> eval g (L b)        = L <$> (evalUnder g b)
+> eval g (N h e)      = do
+>   let h' = evalHead g h
+>   e' <- mapElim (eval g) `traverse` e
+>   foldlM (%%) h' e'
+> eval g (C c)        = C <$> (eval g `traverse` c)
+> eval g (Pi _S _T)   = Pi <$> eval g _S <*> evalUnder g _T
+> eval g (Sig _S _T)  = Sig <$> eval g _S <*> evalUnder g _T
 >
 > evalHead :: Subs -> Head -> Tm
 > evalHead g (V x _)    | Just t <- lookup x g      = t
 > evalHead g (M alpha)  | Just t <- lookup alpha g  = t
 > evalHead g h                                      = N h B0
 >
-> evalUnder :: Subs -> Bind Nom Tm -> Bind Nom Tm
-> evalUnder g b = bind x (eval g t)
->                   where (x, t) = unsafeUnbind b
+> evalUnder :: (Fresh m , Applicative m) => Subs -> Bind Nom Tm -> m (Bind Nom Tm)
+> evalUnder g b = do
+>   (x , t) <- unbind b
+>   bind x <$> eval g t
 
 The |(%%)| operator reduces a redex (a term with an eliminator) to
 normal form: this re-invokes hereditary substitution when a
 $\lambda$-abstraction meets an application.
 
-> (%%) :: Tm -> Elim -> Tm
-> L b       %%  (A a)     = eval [(x, a)] t
->   where (x, t) = unsafeUnbind b
-> PAIR x _  %%  Hd        = x  
-> PAIR _ y  %%  Tl        = y
-> TRUE      %%  If _ t _  = t
-> FALSE     %%  If _ _ f  = f
-> ZE        %%  Fold _P cz cs = cz
-> SU n      %%  Fold _P cz cs = eval [(m , n) , (p , n %% Fold _P cz cs)] cs''
->   where (m , cs')  = unsafeUnbind cs
->         (p , cs'') = unsafeUnbind cs'
-> N h e     %%  z         = N h (e :< z)
+> (%%) :: (Fresh m , Applicative m) => Tm -> Elim -> m Tm
+> L b       %%  (A a)     = do
+>   (x , t) <- unbind b
+>   eval [(x, a)] t
+> PAIR x _  %%  Hd        = return x
+> PAIR _ y  %%  Tl        = return y
+> TRUE      %%  If _ t _  = return t
+> FALSE     %%  If _ _ f  = return f
+> ZE        %%  Fold _P cz cs = return cz
+> SU n      %%  Fold _P cz cs = do
+>   (m , cs')  <- unbind cs
+>   (p , cs'') <- unbind cs'
+>   n' <- n %% Fold _P cz cs
+>   eval [(m , n) , (p , n')] cs''
+> N h e     %%  z         = return $ N h (e :< z)
 > t         %%  a         = error "bad elimination"
 
 % of " ++ pp t ++ " by " ++ pp a
@@ -443,16 +460,16 @@ to an argument, |($*$)| for applying a function to a telescope of
 arguments, |inst| for substituting out a single binding and |hd| and
 |tl| for the projections from $\Sigma$-types.
 
-> ($$) :: Tm -> Tm -> Tm
+> ($$) :: (Fresh m , Applicative m) => Tm -> Tm -> m Tm
 > f $$ a = f %% A a
 >
-> ($*$) :: Tm -> Bwd (Nom, Type) -> Tm
-> f $*$ _Gam = foldl ($$) f (fmap (var . fst) _Gam)
+> ($*$) :: (Fresh m , Applicative m) => Tm -> Bwd (Nom, Type) -> m Tm
+> f $*$ _Gam = foldlM ($$) f (fmap (var . fst) _Gam)
 >
-> inst :: Bind Nom Tm -> Tm -> Tm
+> inst :: (Fresh m , Applicative m) => Bind Nom Tm -> Tm -> m Tm
 > inst f s = L f $$ s
 >
-> hd, tl :: Tm -> Tm
+> hd, tl :: (Fresh m , Applicative m) => Tm -> m Tm
 > hd  = (%% Hd)
 > tl  = (%% Tl) 
 
