@@ -60,7 +60,7 @@
 >     pretty = return . text . show
 
 > instance Pretty (Name x) where
->     pretty = return . text . show
+>     pretty nm = return . text $ name2String nm ++ "$" ++ show (name2Integer nm)
 
 > instance Pretty a => Pretty [a] where
 >     pretty xs = commaSep <$> mapM pretty xs
