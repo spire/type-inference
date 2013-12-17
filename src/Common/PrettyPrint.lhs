@@ -63,7 +63,7 @@
 >     pretty nm = return . text $ name2String nm ++ "$" ++ show (name2Integer nm)
 
 > instance Pretty a => Pretty [a] where
->     pretty xs = commaSep <$> mapM pretty xs
+>     pretty xs = brackets . commaSep <$> mapM pretty xs
 
 > instance Pretty a => Pretty (Bwd a) where
 >     pretty xs = pretty (fwd xs)
@@ -107,10 +107,10 @@
 > between d x y = x <+> d <+> y
 
 > commaSep :: [Doc] -> Doc
-> commaSep = hsep . punctuate comma
+> commaSep = sep . punctuate comma
 
 > semiSep :: [Doc] -> Doc
-> semiSep = hsep . punctuate semi
+> semiSep = sep . punctuate semi
 
 > angles :: Doc -> Doc
 > angles d = text "<" <> d <> text ">"
