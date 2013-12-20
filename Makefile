@@ -1,8 +1,9 @@
-all: cabal-install
+all: production
 
 # Deps must be manually installed once.
 deps: lib-she
 
+production: cabal-install
 debug: cabal-install-debug
 
 test:
@@ -23,6 +24,7 @@ CABAL_INSTALL = \
   || { touch --date "@0" $@ ; \
        exit 42 ; }
 
+src/dist: CABAL_OPTIONS += -O
 src/dist: $(SOURCE)
 	$(CABAL_INSTALL)
 
